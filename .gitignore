@@ -1,0 +1,8 @@
+__pycache__/
+.agents/
+gaokao_build/
+mini-mall/
+output/
+tmp_gaokao/
+hello.py
+*.pyc

@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>地磅称重系统</title>
+<style>
+  *, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+      "Microsoft YaHei", sans-serif;
+    background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 40%, #16213e 100%);
+    color: #e0e0e0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 40px 20px;
+  }
+
+  .container {
+    width: 100%;
+    max-width: 720px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  /* --- Header --- */
+  .header {
+    text-align: center;
+  }
+  .header h1 {
+    font-size: 26px;
+    font-weight: 600;
+    color: #f0c060;
+    letter-spacing: 2px;
+  }
+  .header .subtitle {
+    font-size: 13px;
+    color: #7b8ca0;
+    margin-top: 4px;
+  }
+
+  /* --- Weight Display Card --- */
+  .weight-card {
+    background: #1b1f35;
+    border: 1px solid #2a2f4a;
+    border-radius: 12px;
+    padding: 28px 20px;
+    text-align: center;
+  }
+  .weight-label {
+    font-size: 14px;
+    color: #8895a7;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .weight-display {
+    display: flex;
+    justify-content: center;
+    align-items: baseline;
+    gap: 2px;
+    overflow: hidden;
+  }
+  .digit-column {
+    position: relative;
+    width: 54px;
+    height: 72px;
+    overflow: hidden;
+    background: #121527;
+    border-radius: 6px;
+  }
+  .digit-column .digit-strip {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  .digit-column .digit-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 54px;
+    height: 72px;
+    font-size: 48px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    font-family: "SF Mono", "Consolas", "Courier New", monospace;
+    color: #f0c060;
+    line-height: 1;
+  }
+  .decimal-dot {
+    font-size: 42px;
+    font-weight: 700;
+    color: #f0c060;
+    width: 18px;
+    text-align: center;
+    line-height: 72px;
+  }
+  .weight-unit {
+    font-size: 20px;
+    color: #7b8ca0;
+    margin-left: 8px;
+    font-weight: 500;
+  }
+  .weight-status {
+    margin-top: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #4ade80;
+    transition: background 0.3s;
+  }
+  .status-dot.online {
+    background: #4ade80;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+  .status-dot.offline {
+    background: #ef4444;
+    animation: none;
+  }
+  .status-text {
+    font-size: 13px;
+    color: #6b7c93;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
+
+  /* --- Action Card --- */
+  .action-card {
+    background: #1b1f35;
+    border: 1px solid #2a2f4a;
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+  }
+  .input-group {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .input-group label {
+    font-size: 13px;
+    color: #8895a7;
+  }
+  .input-group input {
+    padding: 10px 14px;
+    border: 1px solid #2a2f4a;
+    border-radius: 8px;
+    background: #121527;
+    color: #e0e0e0;
+    font-size: 16px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .input-group input:focus {
+    border-color: #f0c060;
+  }
+  .input-group input::placeholder {
+    color: #4a5568;
+  }
+  .btn-record {
+    padding: 10px 24px;
+    border: none;
+    border-radius: 8px;
+    background: #f0c060;
+    color: #121527;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    white-space: nowrap;
+    height: 44px;
+  }
+  .btn-record:hover {
+    background: #f5d080;
+  }
+  .btn-record:active {
+    transform: scale(0.97);
+  }
+  .btn-record:disabled {
+    background: #3a3f55;
+    color: #6b7c93;
+    cursor: not-allowed;
+  }
+
+  /* --- Records Card --- */
+  .records-card {
+    background: #1b1f35;
+    border: 1px solid #2a2f4a;
+    border-radius: 12px;
+    padding: 20px;
+    overflow: hidden;
+  }
+  .records-card h2 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #c0c8d4;
+    margin-bottom: 14px;
+  }
+  .table-wrapper {
+    overflow-x: auto;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  thead th {
+    text-align: left;
+    padding: 10px 12px;
+    color: #6b7c93;
+    font-weight: 500;
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border-bottom: 1px solid #2a2f4a;
+  }
+  tbody td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #20243a;
+  }
+  tbody tr {
+    transition: background 0.2s;
+  }
+  tbody tr:hover {
+    background: #20263d;
+  }
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+  .col-id { width: 60px; color: #6b7c93; }
+  .col-plate { color: #c0c8d4; font-weight: 500; }
+  .col-weight { color: #f0c060; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .col-time { color: #6b7c93; font-size: 13px; }
+  .empty-state {
+    text-align: center;
+    padding: 40px 0;
+    color: #4a5568;
+    font-size: 14px;
+  }
+
+  /* --- Toast --- */
+  .toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 12px 28px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 1000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s, transform 0.3s;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(6px);
+  }
+  .toast.success { background: #14532d; color: #86efac; border: 1px solid #166534; }
+  .toast.error { background: #4c0519; color: #fca5a5; border: 1px solid #6b1a1a; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Header -->
+  <div class="header">
+    <h1>⚖ 地磅称重系统</h1>
+    <div class="subtitle">Weighbridge Monitoring System</div>
+  </div>
+
+  <!-- Weight Display -->
+  <div class="weight-card">
+    <div class="weight-label">实时重量</div>
+    <div class="weight-display" id="weightDisplay"></div>
+    <div class="weight-status">
+      <div class="status-dot online" id="statusDot"></div>
+      <span class="status-text" id="statusText">传感器在线 · 每秒刷新</span>
+    </div>
+  </div>
+
+  <!-- Action Area -->
+  <div class="action-card">
+    <div class="input-group">
+      <label for="plateInput">车牌号</label>
+      <input type="text" id="plateInput" placeholder="例如：京A12345" maxlength="10" autocomplete="off">
+    </div>
+    <button class="btn-record" id="btnRecord" onclick="recordWeight()">记录过磅</button>
+  </div>
+
+  <!-- Records Table -->
+  <div class="records-card">
+    <h2>过磅记录</h2>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th class="col-id">#</th>
+            <th class="col-plate">车牌号</th>
+            <th class="col-weight">重量 (kg)</th>
+            <th class="col-time">时间</th>
+          </tr>
+        </thead>
+        <tbody id="recordsBody">
+          <tr><td colspan="4" class="empty-state">暂无记录</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+  const WEIGHT_DISPLAY = document.getElementById("weightDisplay");
+  const RECORDS_BODY = document.getElementById("recordsBody");
+  const PLATE_INPUT = document.getElementById("plateInput");
+  const BTN_RECORD = document.getElementById("btnRecord");
+  const TOAST = document.getElementById("toast");
+  const STATUS_DOT = document.getElementById("statusDot");
+  const STATUS_TEXT = document.getElementById("statusText");
+
+  let currentWeightDisplay = "0.0";
+  let toastTimer = null;
+  let pollTimeout = null;
+  let isConnected = true;
+  let fetchErrorCount = 0;
+  let prevDigits = [0, 0, 0, 0, 0, 0]; // 5 int + 1 dec
+
+  // --- Digit Display Setup ---
+  function createDigitColumn() {
+    const col = document.createElement("div");
+    col.className = "digit-column";
+    const strip = document.createElement("div");
+    strip.className = "digit-strip";
+    // 11 cells: 0-9, then an extra 0 for forward rollover (9→0)
+    for (let d = 0; d <= 10; d++) {
+      const cell = document.createElement("div");
+      cell.className = "digit-cell";
+      cell.textContent = d % 10;
+      strip.appendChild(cell);
+    }
+    col.appendChild(strip);
+    return col;
+  }
+
+  function buildWeightDisplay() {
+    WEIGHT_DISPLAY.innerHTML = "";
+    for (let i = 0; i < 5; i++) {
+      WEIGHT_DISPLAY.appendChild(createDigitColumn());
+    }
+    const dot = document.createElement("span");
+    dot.className = "decimal-dot";
+    dot.textContent = ".";
+    WEIGHT_DISPLAY.appendChild(dot);
+    WEIGHT_DISPLAY.appendChild(createDigitColumn());
+    const unit = document.createElement("span");
+    unit.className = "weight-unit";
+    unit.textContent = "kg";
+    WEIGHT_DISPLAY.appendChild(unit);
+  }
+
+  function updateDigitDisplay(valueStr) {
+    const parts = valueStr.split(".");
+    const intStr = parts[0].padStart(5, "0");
+    const decStr = (parts[1] || "0").padEnd(1, "0");
+    const allDigits = (intStr + decStr).split("").map(Number);
+
+    const columns = WEIGHT_DISPLAY.querySelectorAll(".digit-column");
+    const cellHeight = 72;
+
+    allDigits.forEach((newDigit, i) => {
+      if (i >= columns.length) return;
+      const oldDigit = prevDigits[i];
+      const strip = columns[i].querySelector(".digit-strip");
+
+      if (oldDigit === 9 && newDigit === 0) {
+        // Forward roll: animate to extra 0 at bottom (index 10), then snap to top 0
+        strip.style.transition = "transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)";
+        strip.style.transform = "translateY(-720px)"; // 10 * 72
+        const handleEnd = () => {
+          strip.removeEventListener("transitionend", handleEnd);
+          strip.style.transition = "none";
+          strip.style.transform = "translateY(0px)";
+          void strip.offsetHeight; // force reflow
+          strip.style.transition = "transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)";
+        };
+        strip.addEventListener("transitionend", handleEnd);
+      } else {
+        strip.style.transform = "translateY(-" + (newDigit * cellHeight) + "px)";
+      }
+    });
+
+    prevDigits = allDigits;
+  }
+
+  // --- Connection Status ---
+  function setConnectionStatus(connected) {
+    if (connected) {
+      fetchErrorCount = 0;
+      if (isConnected) return;
+      isConnected = true;
+      STATUS_DOT.className = "status-dot online";
+      STATUS_TEXT.textContent = "传感器在线 · 每秒刷新";
+    } else {
+      fetchErrorCount++;
+      if (fetchErrorCount < 3) return;
+      if (!isConnected) return;
+      isConnected = false;
+      STATUS_DOT.className = "status-dot offline";
+      STATUS_TEXT.textContent = "传感器离线 · 尝试重连...";
+    }
+  }
+
+  // --- Fetch Current Weight ---
+  async function fetchWeight() {
+    try {
+      const res = await fetch("/api/current_weight");
+      if (!res.ok) throw new Error("Server error");
+      const data = await res.json();
+      const w = data.weight.toFixed(1);
+      if (w !== currentWeightDisplay) {
+        currentWeightDisplay = w;
+        updateDigitDisplay(w);
+        BTN_RECORD.dataset.currentWeight = data.weight;
+      }
+      setConnectionStatus(true);
+    } catch (err) {
+      console.error("Fetch weight error:", err);
+      setConnectionStatus(false);
+    }
+  }
+
+  // --- Polling with setTimeout recursion ---
+  function scheduleNextPoll() {
+    pollTimeout = setTimeout(async () => {
+      await fetchWeight();
+      scheduleNextPoll();
+    }, 1000);
+  }
+
+  function startPolling() {
+    fetchWeight().then(() => {
+      scheduleNextPoll();
+    });
+  }
+
+  function stopPolling() {
+    if (pollTimeout) {
+      clearTimeout(pollTimeout);
+      pollTimeout = null;
+    }
+  }
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      stopPolling();
+    } else {
+      fetchWeight().then(() => {
+        scheduleNextPoll();
+      });
+    }
+  });
+
+  // --- Fetch Records ---
+  async function fetchRecords() {
+    try {
+      const res = await fetch("/api/records");
+      if (!res.ok) return;
+      const data = await res.json();
+      renderRecords(data.records);
+    } catch (err) {
+      console.error("Fetch records error:", err);
+    }
+  }
+
+  function formatTime(isoStr) {
+    const d = new Date(isoStr);
+    if (isNaN(d.getTime())) return isoStr;
+    const pad = (n) => String(n).padStart(2, "0");
+    return (
+      d.getFullYear() +
+      "-" + pad(d.getMonth() + 1) +
+      "-" + pad(d.getDate()) +
+      " " + pad(d.getHours()) +
+      ":" + pad(d.getMinutes()) +
+      ":" + pad(d.getSeconds())
+    );
+  }
+
+  function renderRecords(records) {
+    if (!records || records.length === 0) {
+      RECORDS_BODY.innerHTML = '<tr><td colspan="4" class="empty-state">暂无记录</td></tr>';
+      return;
+    }
+    const shown = records.slice(0, 50);
+    RECORDS_BODY.innerHTML = shown
+      .map(
+        (r) => `
+      <tr>
+        <td class="col-id">${r.id}</td>
+        <td class="col-plate">${escapeHtml(r.plate)}</td>
+        <td class="col-weight">${r.weight.toFixed(1)}</td>
+        <td class="col-time">${formatTime(r.time)}</td>
+      </tr>
+    `
+      )
+      .join("");
+  }
+
+  // Single cached div for HTML escaping
+  const escapeDiv = document.createElement("div");
+  function escapeHtml(str) {
+    escapeDiv.textContent = str;
+    return escapeDiv.innerHTML;
+  }
+
+  // --- Record Weight ---
+  async function recordWeight() {
+    const plate = PLATE_INPUT.value.trim();
+    if (!plate) {
+      showToast("请输入车牌号", "error");
+      PLATE_INPUT.focus();
+      return;
+    }
+
+    let weight = parseFloat(BTN_RECORD.dataset.currentWeight || currentWeightDisplay);
+    if (isNaN(weight) || weight < 0) {
+      try {
+        const res = await fetch("/api/current_weight");
+        const data = await res.json();
+        weight = data.weight;
+      } catch {
+        showToast("无法获取当前重量", "error");
+        return;
+      }
+    }
+
+    BTN_RECORD.disabled = true;
+    try {
+      const res = await fetch("/api/record", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plate, weight }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        PLATE_INPUT.value = "";
+        PLATE_INPUT.focus();
+        showToast(
+          "记录成功 · " + data.plate + " · " + data.weight.toFixed(1) + " kg",
+          "success"
+        );
+        fetchRecords();
+      } else {
+        showToast(data.error || "记录失败", "error");
+      }
+    } catch (err) {
+      showToast("网络错误，请重试", "error");
+    }
+    BTN_RECORD.disabled = false;
+  }
+
+  // --- Toast ---
+  function showToast(msg, type) {
+    TOAST.textContent = msg;
+    TOAST.className = "toast " + type + " show";
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      TOAST.classList.remove("show");
+    }, 2500);
+  }
+
+  // --- Init ---
+  function init() {
+    buildWeightDisplay();
+    updateDigitDisplay("00000.0");
+    BTN_RECORD.dataset.currentWeight = "0";
+
+    startPolling();
+    fetchRecords();
+
+    PLATE_INPUT.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") recordWeight();
+    });
+  }
+
+  init();
+</script>
+</body>
+</html>
