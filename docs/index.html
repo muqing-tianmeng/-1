@@ -1,0 +1,1152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>地磅称重系统</title>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0f1119;
+    --sidebar-bg: #0b0d14;
+    --card-bg: #161822;
+    --border: #1e2130;
+    --text: #c8ccd4;
+    --text-dim: #6b7080;
+    --accent: #f0b840;
+    --accent-dim: #b8902a;
+    --green: #4ade80;
+    --red: #f87171;
+    --blue: #60a5fa;
+    --input-bg: #0d0f18;
+    --input-border: #252838;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 220px 1fr;
+  }
+
+  .sidebar {
+    background: var(--sidebar-bg);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    user-select: none;
+  }
+  .sidebar-logo { padding: 24px 20px 20px; border-bottom: 1px solid var(--border); }
+  .sidebar-logo h2 { font-size: 18px; color: var(--accent); letter-spacing: 1px; }
+  .sidebar-logo .ver { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+  .sidebar-nav { flex: 1; padding: 12px 0; display: flex; flex-direction: column; gap: 2px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 20px; font-size: 14px; color: var(--text-dim);
+    cursor: pointer; transition: background 0.15s, color 0.15s;
+    border-left: 3px solid transparent;
+  }
+  .nav-item:hover { background: #11131e; color: #a0a8b4; }
+  .nav-item.active { background: #11131e; color: var(--accent); border-left-color: var(--accent); }
+  .nav-icon { font-size: 18px; width: 24px; text-align: center; }
+  .sidebar-footer { padding: 16px 20px; border-top: 1px solid var(--border); font-size: 11px; color: #3a3f50; }
+
+  .main { display: flex; flex-direction: column; overflow: hidden; }
+  .main-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 28px; border-bottom: 1px solid var(--border); background: var(--bg);
+  }
+  .header-company { font-size: 15px; font-weight: 600; color: var(--text); }
+  .header-right { display: flex; align-items: center; gap: 20px; }
+  .header-time { font-size: 13px; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+  .header-status { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--green); }
+  .header-status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse2 1.5s ease-in-out infinite; }
+  @keyframes pulse2 { 0%,100%{opacity:1} 50%{opacity:.35} }
+
+  .main-content { flex: 1; overflow-y: auto; padding: 24px; }
+
+  .page { display: none; }
+  .page.active { display: block; }
+
+  .weigh-grid {
+    display: grid; grid-template-columns: 1fr 380px;
+    grid-template-rows: auto 1fr; gap: 16px; height: 100%;
+  }
+  .weigh-weight-panel { grid-column: 1; grid-row: 1; }
+  .weigh-form-panel { grid-column: 1; grid-row: 2; }
+  .weigh-side-panel { grid-column: 2; grid-row: 1 / 3; display: flex; flex-direction: column; gap: 16px; }
+
+  .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+  .card-label { font-size: 12px; color: var(--text-dim); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 10px; }
+  .weight-display { display: flex; justify-content: center; align-items: baseline; gap: 2px; }
+  .digit-column {
+    position: relative; width: 64px; height: 88px; overflow: hidden;
+    background: #0d0f18; border-radius: 6px; border: 1px solid #1a1d2a;
+  }
+  .digit-column .digit-strip {
+    position: absolute; top: 0; left: 0; width: 100%;
+    transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  .digit-column .digit-cell {
+    display: flex; align-items: center; justify-content: center;
+    width: 64px; height: 88px; font-size: 58px; font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    font-family: "SF Mono", "Consolas", "Courier New", monospace;
+    color: var(--accent); line-height: 1;
+  }
+  .decimal-dot { font-size: 50px; font-weight: 700; color: var(--accent); width: 20px; text-align: center; line-height: 88px; }
+  .weight-unit { font-size: 22px; color: var(--text-dim); margin-left: 10px; font-weight: 500; }
+  .weight-summary { display: flex; justify-content: center; gap: 32px; margin-top: 16px; }
+  .weight-item { text-align: center; }
+  .weight-item .label { font-size: 11px; color: var(--text-dim); letter-spacing: 1px; margin-bottom: 4px; }
+  .weight-item .value { font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; font-family: "SF Mono","Consolas",monospace; }
+  .weight-item .value.gross { color: #60a5fa; }
+  .weight-item .value.tare { color: #f87171; }
+  .weight-item .value.net { color: #4ade80; }
+
+  .camera-card { flex: 1; display: flex; flex-direction: column; }
+  .camera-view {
+    flex: 1; min-height: 220px; border-radius: 8px;
+    background: linear-gradient(135deg, #0d1117 0%, #161b22 50%, #0d1117 100%);
+    position: relative; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .camera-view video { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
+  .camera-crosshair {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    width: 60px; height: 60px; border: 1px solid rgba(240,184,64,0.35); border-radius: 3px;
+  }
+  .camera-crosshair::before { content: ""; position: absolute; top: 50%; left: -30px; width: 120px; height: 1px; background: rgba(240,184,64,0.25); }
+  .camera-crosshair::after { content: ""; position: absolute; left: 50%; top: -30px; height: 120px; width: 1px; background: rgba(240,184,64,0.25); }
+  .camera-label { position: absolute; bottom: 10px; left: 12px; font-size: 11px; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+  .camera-placeholder { color: #2a2e3a; font-size: 13px; text-align: center; }
+  .camera-placeholder .icon { font-size: 36px; display: block; margin-bottom: 6px; }
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+  .form-group { display: flex; flex-direction: column; gap: 4px; }
+  .form-group label { font-size: 12px; color: var(--text-dim); letter-spacing: 1px; }
+  .form-group input, .form-group select {
+    padding: 9px 12px; border: 1px solid var(--input-border); border-radius: 6px;
+    background: var(--input-bg); color: var(--text); font-size: 14px; outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-group input:focus, .form-group select:focus { border-color: var(--accent); }
+  .form-group input::placeholder { color: #3a3f50; }
+  .form-group select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7080' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 8px center; background-repeat: no-repeat;
+    background-size: 20px; padding-right: 32px;
+  }
+  .form-group select option { background: #161822; color: var(--text); }
+
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn {
+    padding: 9px 20px; border: none; border-radius: 6px;
+    font-size: 14px; font-weight: 600; cursor: pointer;
+    transition: background 0.15s, transform 0.1s, opacity 0.15s;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+  .btn-primary { background: var(--accent); color: #111318; }
+  .btn-primary:hover { background: #f5cc6a; }
+  .btn-outline { background: transparent; border: 1px solid var(--input-border); color: var(--text); }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-danger { background: transparent; border: 1px solid #5c1a1a; color: var(--red); }
+  .btn-danger:hover { background: #3b1010; }
+  .btn-sm { padding: 5px 12px; font-size: 12px; }
+  .mode-indicator {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 500;
+    background: #11182a; color: var(--blue); border: 1px solid #1a2a4a;
+  }
+
+  .mini-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .mini-table thead th { text-align: left; padding: 6px 8px; color: var(--text-dim); font-weight: 500; font-size: 11px; letter-spacing: 1px; border-bottom: 1px solid var(--border); }
+  .mini-table tbody td { padding: 6px 8px; border-bottom: 1px solid #1a1d28; }
+  .mini-table tbody tr:hover { background: #1a1d2a; }
+
+  .records-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; gap: 12px; }
+  .records-search { padding: 8px 14px; border: 1px solid var(--input-border); border-radius: 6px; background: var(--input-bg); color: var(--text); font-size: 13px; width: 260px; outline: none; }
+  .records-search:focus { border-color: var(--accent); }
+  .records-count { font-size: 13px; color: var(--text-dim); }
+  .records-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .records-table thead th { text-align: left; padding: 10px 12px; color: var(--text-dim); font-weight: 500; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+  .records-table tbody td { padding: 10px 12px; border-bottom: 1px solid #1a1d28; }
+  .records-table tbody tr:hover { background: #1a1d2a; }
+  .pagination { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 16px; }
+  .page-btn { padding: 6px 14px; border: 1px solid var(--input-border); border-radius: 5px; background: transparent; color: var(--text-dim); font-size: 13px; cursor: pointer; }
+  .page-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .page-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .page-info { font-size: 13px; color: var(--text-dim); }
+
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .kpi-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 20px; text-align: center; }
+  .kpi-card .kpi-label { font-size: 12px; color: var(--text-dim); letter-spacing: 1px; margin-bottom: 8px; }
+  .kpi-card .kpi-value { font-size: 32px; font-weight: 700; font-variant-numeric: tabular-nums; font-family: "SF Mono","Consolas",monospace; }
+  .kpi-card .kpi-unit { font-size: 14px; color: var(--text-dim); font-weight: 400; margin-left: 4px; }
+  .kpi-card.accent .kpi-value { color: var(--accent); }
+  .chart-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 24px; }
+  .chart-title { font-size: 14px; color: var(--text); font-weight: 600; margin-bottom: 20px; }
+  .bar-chart { display: flex; align-items: flex-end; gap: 12px; height: 200px; padding: 0 10px; }
+  .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .bar-value { font-size: 12px; color: var(--text-dim); font-weight: 500; }
+  .bar-fill { width: 100%; max-width: 60px; background: linear-gradient(180deg, var(--accent), var(--accent-dim)); border-radius: 4px 4px 0 0; min-height: 2px; transition: height 0.5s ease; }
+  .bar-label { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+
+  .settings-section { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 16px; }
+  .settings-section h3 { font-size: 14px; color: var(--text); margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+  .settings-row { display: flex; gap: 12px; align-items: flex-end; margin-bottom: 12px; }
+  .settings-row .form-group { flex: 1; }
+  .tag-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .tag { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 4px; background: #11182a; border: 1px solid #1a2a4a; font-size: 13px; color: var(--text); }
+  .tag-remove { cursor: pointer; color: var(--text-dim); font-size: 16px; line-height: 1; }
+  .tag-remove:hover { color: var(--red); }
+
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+  .modal-overlay.show { opacity: 1; pointer-events: auto; }
+  .modal { background: #fff; color: #1a1a1a; border-radius: 6px; width: 420px; max-width: 94vw; padding: 32px; font-family: "PingFang SC","Microsoft YaHei",sans-serif; }
+  .modal h2 { text-align: center; font-size: 20px; margin-bottom: 20px; letter-spacing: 3px; color: #1a1a1a; }
+  .modal table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .modal table td { padding: 7px 4px; border-bottom: 1px dashed #ccc; }
+  .modal table td:first-child { color: #666; width: 70px; }
+  .modal table td:last-child { font-weight: 500; }
+  .modal-divider { border-top: 2px solid #1a1a1a; margin: 12px 0 8px; }
+  .modal-footer { text-align: center; margin-top: 20px; color: #999; font-size: 12px; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+
+  .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); padding: 12px 28px; border-radius: 8px; font-size: 14px; font-weight: 500; z-index: 2000; opacity: 0; pointer-events: none; transition: opacity 0.3s, transform 0.3s; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(6px); }
+  .toast.success { background: #14532d; color: #86efac; border: 1px solid #166534; }
+  .toast.error { background: #4c0519; color: #fca5a5; border: 1px solid #6b1a1a; }
+
+  @media (max-width: 900px) {
+    body { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+    .weigh-grid { grid-template-columns: 1fr; }
+    .weigh-side-panel { grid-column: 1; grid-row: auto; }
+    .kpi-grid { grid-template-columns: repeat(2,1fr); }
+  }
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <h2>⚖ 地磅称重</h2>
+    <div class="ver">v2.2 · 静态版</div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-item active" data-page="weigh">
+      <span class="nav-icon">⚖</span> 称重台
+    </div>
+    <div class="nav-item" data-page="records">
+      <span class="nav-icon">📋</span> 过磅记录
+    </div>
+    <div class="nav-item" data-page="stats">
+      <span class="nav-icon">📊</span> 数据统计
+    </div>
+    <div class="nav-item" data-page="settings">
+      <span class="nav-icon">⚙</span> 系统设置
+    </div>
+  </nav>
+  <div class="sidebar-footer">&copy; 2025 Weighbridge Demo</div>
+</aside>
+
+<main class="main">
+  <header class="main-header">
+    <span class="header-company" id="headerCompany">XX地磅站</span>
+    <div class="header-right">
+      <div class="header-status" id="headerStatus">
+        <span class="header-status-dot"></span>
+        <span id="headerStatusText">本地模拟 · 每秒刷新</span>
+      </div>
+      <span class="header-time" id="headerTime"></span>
+    </div>
+  </header>
+
+  <div class="main-content">
+    <!-- Weigh Page -->
+    <div class="page active" id="pageWeigh">
+      <div class="weigh-grid">
+        <div class="card weigh-weight-panel">
+          <div class="card-label">实时重量</div>
+          <div class="weight-display" id="weightDisplay"></div>
+          <div class="weight-summary">
+            <div class="weight-item">
+              <div class="label">毛重</div>
+              <div class="value gross" id="grossDisplay">--</div>
+            </div>
+            <div class="weight-item">
+              <div class="label">皮重</div>
+              <div class="value tare" id="tareDisplay">--</div>
+            </div>
+            <div class="weight-item">
+              <div class="label">净重</div>
+              <div class="value net" id="netDisplay">--</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card weigh-form-panel">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>车牌号码</label>
+              <input type="text" id="plateInput" placeholder="例如：京A12345" maxlength="10" autocomplete="off">
+            </div>
+            <div class="form-group">
+              <label>司机姓名</label>
+              <input type="text" id="driverInput" placeholder="司机姓名" maxlength="20">
+            </div>
+            <div class="form-group">
+              <label>货物品名</label>
+              <select id="cargoSelect"><option value="">-- 选择货物 --</option></select>
+            </div>
+            <div class="form-group">
+              <label>供应商</label>
+              <select id="supplierSelect"><option value="">-- 选择供应商 --</option></select>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+            <span id="modeBadge" class="mode-indicator">📡 一次称重模式</span>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" id="btnRecord" onclick="handleRecord()">📝 记录称重</button>
+            <button class="btn btn-outline" id="btnGross" onclick="captureGross()">⚖ 毛重</button>
+            <button class="btn btn-outline" id="btnTare" onclick="captureTare()" disabled>⚖ 皮重</button>
+            <button class="btn btn-outline" id="btnTareManual" onclick="manualTare()">⚙ 去皮</button>
+            <button class="btn btn-outline" id="btnClear" onclick="clearWeighState()">↺ 清零</button>
+          </div>
+        </div>
+
+        <div class="weigh-side-panel">
+          <div class="card camera-card">
+            <div class="card-label">📷 实时画面</div>
+            <div class="camera-view" id="cameraView">
+              <div class="camera-placeholder" id="cameraPlaceholder">
+                <span class="icon">📷</span>等待摄像头...
+              </div>
+              <video id="cameraVideo" style="display:none" autoplay playsinline></video>
+              <div class="camera-crosshair"></div>
+              <div class="camera-label" id="cameraTimestamp"></div>
+            </div>
+          </div>
+          <div class="card" style="flex:1;overflow:hidden;display:flex;flex-direction:column;">
+            <div class="card-label">📋 最近记录</div>
+            <div style="overflow-y:auto;flex:1;">
+              <table class="mini-table">
+                <thead><tr><th>时间</th><th>车牌</th><th>净重</th></tr></thead>
+                <tbody id="miniRecordsBody">
+                  <tr><td colspan="3" style="color:var(--text-dim);text-align:center;padding:20px;">暂无记录</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Records Page -->
+    <div class="page" id="pageRecords">
+      <div class="card">
+        <div class="records-header">
+          <input type="text" class="records-search" id="recordsSearch" placeholder="搜索车牌号或货物..." oninput="renderRecordsPage()">
+          <span class="records-count" id="recordsCount">共 0 条记录</span>
+          <div>
+            <button class="btn btn-outline btn-sm" onclick="exportCSV()" style="margin-right:6px;">📥 导出CSV</button>
+          </div>
+        </div>
+        <table class="records-table">
+          <thead>
+            <tr>
+              <th>ID</th><th>车牌号</th><th>司机</th><th>货物</th><th>供应商</th>
+              <th>毛重(kg)</th><th>皮重(kg)</th><th>净重(kg)</th>
+              <th>模式</th><th>时间</th><th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="recordsPageBody"></tbody>
+        </table>
+        <div class="pagination" id="pagination"></div>
+      </div>
+    </div>
+
+    <!-- Stats Page -->
+    <div class="page" id="pageStats">
+      <div class="kpi-grid" id="kpiGrid">
+        <div class="kpi-card accent"><div class="kpi-label">今日车次</div><div class="kpi-value">--<span class="kpi-unit">辆</span></div></div>
+        <div class="kpi-card"><div class="kpi-label">今日净重总量</div><div class="kpi-value" style="color:#4ade80;">--<span class="kpi-unit">kg</span></div></div>
+        <div class="kpi-card"><div class="kpi-label">今日平均净重</div><div class="kpi-value" style="color:#60a5fa;">--<span class="kpi-unit">kg</span></div></div>
+        <div class="kpi-card accent"><div class="kpi-label">历史总记录</div><div class="kpi-value">--<span class="kpi-unit">条</span></div></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">近7天每日过磅车次</div>
+        <div class="bar-chart" id="barChart"></div>
+      </div>
+    </div>
+
+    <!-- Settings Page -->
+    <div class="page" id="pageSettings">
+      <div class="settings-section">
+        <h3>公司信息</h3>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>公司名称</label>
+            <input type="text" id="settingsCompanyName" placeholder="例如：XX地磅站">
+          </div>
+          <div class="form-group">
+            <label>地磅编号</label>
+            <input type="text" id="settingsScaleId" placeholder="例如：SC-001">
+          </div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="saveCompanySettings()">保存设置</button>
+      </div>
+
+      <div class="settings-section">
+        <h3>货物管理</h3>
+        <div class="settings-row">
+          <div class="form-group">
+            <input type="text" id="newCargoInput" placeholder="输入货物品名" maxlength="30">
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="addCargo()">+ 添加</button>
+        </div>
+        <div class="tag-list" id="cargoTags"></div>
+      </div>
+
+      <div class="settings-section">
+        <h3>供应商管理</h3>
+        <div class="settings-row">
+          <div class="form-group">
+            <input type="text" id="newSupplierInput" placeholder="输入供应商名称" maxlength="30">
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="addSupplier()">+ 添加</button>
+        </div>
+        <div class="tag-list" id="supplierTags"></div>
+      </div>
+
+      <div class="settings-section">
+        <h3>数据管理</h3>
+        <button class="btn btn-danger" id="btnClearData" onclick="clearAllData()">🗑 清空所有数据</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal" id="modalContent" onclick="event.stopPropagation()"></div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// CONSTANTS
+// ============================================================
+const $ = id => document.getElementById(id);
+const PLATE_RE = /^[京津沪渝冀豫云辽黑湘皖鲁新苏浙赣鄂桂甘晋蒙陕吉闽贵粤川青藏琼宁][A-Z][A-Z0-9]{4,5}$/;
+const RECORDS_PER_PAGE = 15;
+const MAX_RECORDS = 200;
+const CELL_HEIGHT = 88;
+const DIGIT_CHARS = ["0","1","2","3","4","5","6","7","8","9","0"];
+
+// ============================================================
+// STATE
+// ============================================================
+let currentWeightValue = 25000.0;
+let recordsCache = [];
+let recordsPage = 1;
+let cargoes = [];
+let suppliers = [];
+let settingsData = { company_name: "XX地磅站", station_id: "SC-001" };
+let weighState = { gross: null, tare: null, mode: "single" };
+let clearDataConfirm = false;
+let toastTimer = null;
+let pollTimeout = null;
+let cargoIdCounter = 1;
+let supplierIdCounter = 1;
+let recordIdCounter = 1;
+
+// ============================================================
+// LOCALSTORAGE HELPERS
+// ============================================================
+function lsGet(key, fallback) {
+  try { const v = localStorage.getItem("wb_" + key); return v ? JSON.parse(v) : fallback; }
+  catch { return fallback; }
+}
+function lsSet(key, val) {
+  try { localStorage.setItem("wb_" + key, JSON.stringify(val)); } catch {}
+}
+
+function loadAllData() {
+  recordsCache = lsGet("records", []);
+  cargoes = lsGet("cargoes", [
+    { id: 1, name: "水泥" }, { id: 2, name: "砂石" }, { id: 3, name: "钢材" },
+    { id: 4, name: "煤炭" }, { id: 5, name: "粮食" }
+  ]);
+  suppliers = lsGet("suppliers", [
+    { id: 1, name: "海螺水泥" }, { id: 2, name: "中建一局" }, { id: 3, name: "沙河建材" },
+    { id: 4, name: "晋煤集团" }, { id: 5, name: "中粮集团" }
+  ]);
+  settingsData = lsGet("settings", { company_name: "XX地磅站", station_id: "SC-001" });
+  cargoIdCounter = lsGet("cargoIdCounter", 6);
+  supplierIdCounter = lsGet("supplierIdCounter", 6);
+  recordIdCounter = lsGet("recordIdCounter", recordsCache.length > 0 ? Math.max(...recordsCache.map(r => r.id || 0)) + 1 : 1);
+}
+
+function saveRecords() { lsSet("records", recordsCache); lsSet("recordIdCounter", recordIdCounter); }
+function saveCargoes() { lsSet("cargoes", cargoes); lsSet("cargoIdCounter", cargoIdCounter); }
+function saveSuppliers() { lsSet("suppliers", suppliers); lsSet("supplierIdCounter", supplierIdCounter); }
+function saveSettings() { lsSet("settings", settingsData); }
+
+// ============================================================
+// WEIGHT SIMULATION (replaces /api/current_weight)
+// ============================================================
+function simulateWeight() {
+  const t = Date.now() / 1000;
+  const drift = Math.sin(t * 0.3) * 200;
+  const noise = (Math.random() - 0.5) * 160;
+  const raw = 25000 + drift + noise;
+  return Math.max(0, Math.min(50000, Math.round(raw * 10) / 10));
+}
+
+// ============================================================
+// DIGIT FLIP DISPLAY
+// ============================================================
+function buildWeightDisplay() {
+  const container = $("weightDisplay");
+  container.innerHTML = "";
+
+  const cols = [
+    { tag: "digit", pos: 4 }, { tag: "digit", pos: 3 }, { tag: "digit", pos: 2 },
+    { tag: "digit", pos: 1 }, { tag: "digit", pos: 0 }, { tag: "dot" }, { tag: "digit", pos: 5 }
+  ];
+
+  cols.forEach(c => {
+    if (c.tag === "dot") {
+      const dot = document.createElement("div");
+      dot.className = "decimal-dot";
+      dot.textContent = ".";
+      container.appendChild(dot);
+    } else {
+      const col = document.createElement("div");
+      col.className = "digit-column";
+      col.id = "digitCol" + c.pos;
+      const strip = document.createElement("div");
+      strip.className = "digit-strip";
+      strip.id = "digitStrip" + c.pos;
+      for (let i = 0; i < 11; i++) {
+        const cell = document.createElement("div");
+        cell.className = "digit-cell";
+        cell.textContent = DIGIT_CHARS[i];
+        strip.appendChild(cell);
+      }
+      col.appendChild(strip);
+      container.appendChild(col);
+    }
+  });
+
+  const unit = document.createElement("span");
+  unit.className = "weight-unit";
+  unit.textContent = "kg";
+  container.appendChild(unit);
+}
+
+function updateDigitDisplay(weightStr) {
+  for (let pos = 0; pos <= 4; pos++) {
+    const strip = document.getElementById("digitStrip" + pos);
+    if (!strip) continue;
+    const digit = parseInt(weightStr[pos]);
+    strip.style.transform = "translateY(-" + (digit * CELL_HEIGHT) + "px)";
+  }
+  const decimStrip = document.getElementById("digitStrip5");
+  if (decimStrip) {
+    const decimDigit = parseInt(weightStr[6]);
+    decimStrip.style.transform = "translateY(-" + (decimDigit * CELL_HEIGHT) + "px)";
+  }
+}
+
+function updateSummaryDisplay(gross, tare, net) {
+  $("grossDisplay").textContent = gross ? gross.toFixed(1) : "--";
+  $("tareDisplay").textContent = tare ? tare.toFixed(1) : "--";
+  $("netDisplay").textContent = net ? net.toFixed(1) : "--";
+}
+
+// ============================================================
+// FETCH WEIGHT (simulated)
+// ============================================================
+async function fetchWeight() {
+  currentWeightValue = simulateWeight();
+  const str = currentWeightValue.toFixed(1);
+  const padded = str.padStart(7, "0");
+  updateDigitDisplay(padded);
+  updateCameraTimestamp();
+}
+
+// ============================================================
+// WEIGH STATE MACHINE
+// ============================================================
+function updateModeUI() {
+  const badge = $("modeBadge");
+  const btnGross = $("btnGross");
+  const btnTare = $("btnTare");
+
+  if (weighState.gross !== null && weighState.tare !== null) {
+    badge.innerHTML = "✅ 二次称重完成";
+    badge.style.background = "#112a1a"; badge.style.color = "#4ade80"; badge.style.borderColor = "#1a4a2a";
+    btnGross.disabled = true;
+    btnTare.disabled = true;
+    updateSummaryDisplay(weighState.gross, weighState.tare, Math.max(0, weighState.gross - weighState.tare));
+  } else if (weighState.gross !== null) {
+    badge.innerHTML = "⏳ 等待皮重...";
+    badge.style.background = "#2a1a11"; badge.style.color = "#f0b840"; badge.style.borderColor = "#4a2a1a";
+    btnGross.disabled = true;
+    btnTare.disabled = false;
+    updateSummaryDisplay(weighState.gross, null, null);
+  } else {
+    badge.innerHTML = "📡 一次称重模式";
+    badge.style.background = "#11182a"; badge.style.color = "#60a5fa"; badge.style.borderColor = "#1a2a4a";
+    btnGross.disabled = false;
+    btnTare.disabled = true;
+    updateSummaryDisplay(null, null, null);
+  }
+}
+
+function captureGross() {
+  weighState.gross = currentWeightValue;
+  weighState.tare = null;
+  weighState.mode = "double";
+  updateModeUI();
+  showToast("毛重已锁定: " + weighState.gross.toFixed(1) + " kg，请点击「皮重」", "success");
+}
+
+function captureTare() {
+  if (weighState.gross === null) { showToast("请先捕获毛重", "error"); return; }
+  weighState.tare = currentWeightValue;
+  updateModeUI();
+  const net = Math.max(0, weighState.gross - weighState.tare);
+  showToast("皮重已锁定: " + weighState.tare.toFixed(1) + " kg · 净重: " + net.toFixed(1) + " kg", "success");
+}
+
+function manualTare() {
+  const val = prompt("请输入皮重 (kg):", currentWeightValue.toFixed(0));
+  if (val === null) return;
+  const num = parseFloat(val);
+  if (isNaN(num) || num < 0) { showToast("请输入有效皮重值", "error"); return; }
+  weighState.gross = currentWeightValue;
+  weighState.tare = num;
+  weighState.mode = "double";
+  updateModeUI();
+  const net = Math.max(0, weighState.gross - weighState.tare);
+  showToast("皮重已设置: " + num + " kg · 净重: " + net.toFixed(1) + " kg", "success");
+}
+
+function clearWeighState() {
+  weighState = { gross: null, tare: null, mode: "single" };
+  updateModeUI();
+  updateSummaryDisplay(null, null, null);
+  showToast("称重状态已清零", "success");
+}
+
+// ============================================================
+// RECORD HANDLING (localStorage)
+// ============================================================
+function handleRecord() {
+  const plate = $("plateInput").value.trim().toUpperCase();
+  if (!plate) { showToast("请输入车牌号", "error"); $("plateInput").focus(); return; }
+  if (!PLATE_RE.test(plate)) { showToast("车牌号格式不正确", "error"); $("plateInput").focus(); return; }
+
+  const driverVal = $("driverInput").value.trim() || "未知";
+  const cargoVal = $("cargoSelect").value || "未指定";
+  const supplierVal = $("supplierSelect").value || "未指定";
+
+  let gross, tare, net, mode;
+  if (weighState.gross !== null && weighState.tare !== null) {
+    gross = weighState.gross;
+    tare = weighState.tare;
+    net = Math.max(0, gross - tare);
+    mode = "double";
+  } else {
+    gross = currentWeightValue;
+    tare = 0;
+    net = currentWeightValue;
+    mode = "single";
+  }
+
+  const record = {
+    id: recordIdCounter++,
+    plate: plate,
+    driver: driverVal,
+    goods: cargoVal,
+    supplier: supplierVal,
+    gross: Math.round(gross * 10) / 10,
+    tare: Math.round(tare * 10) / 10,
+    net: Math.round(net * 10) / 10,
+    mode: mode,
+    time: new Date().toISOString()
+  };
+
+  recordsCache.unshift(record);
+  if (recordsCache.length > MAX_RECORDS) recordsCache = recordsCache.slice(0, MAX_RECORDS);
+  saveRecords();
+
+  $("plateInput").value = "";
+  $("driverInput").value = "";
+  $("plateInput").focus();
+  weighState = { gross: null, tare: null, mode: "single" };
+  updateModeUI();
+
+  showToast("✅ 记录成功 · " + record.plate + " · 净重 " + record.net.toFixed(1) + " kg", "success");
+  renderMiniRecords();
+  if ($("pageRecords").classList.contains("active")) { recordsPage = 1; renderRecordsPage(); }
+}
+
+// ============================================================
+// MINI RECORDS (weigh page)
+// ============================================================
+function renderMiniRecords() {
+  const tbody = $("miniRecordsBody");
+  if (recordsCache.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="3" style="color:var(--text-dim);text-align:center;padding:20px;">暂无记录</td></tr>';
+    return;
+  }
+  tbody.innerHTML = recordsCache.slice(0, 10).map(r => `
+    <tr>
+      <td style="color:var(--text-dim);font-size:11px;">${formatTimeShort(r.time)}</td>
+      <td style="color:var(--text);">${escapeHtml(r.plate)}</td>
+      <td style="color:var(--accent);font-weight:600;text-align:right;">${(r.net ?? r.weight ?? 0).toFixed(1)}</td>
+    </tr>
+  `).join("");
+}
+
+// ============================================================
+// RECORDS PAGE
+// ============================================================
+function renderRecordsPage() {
+  let records = recordsCache.map(r => ({
+    id: r.id, plate: r.plate || "", driver: r.driver || "未知",
+    cargo: r.goods || r.cargo || "未指定", supplier: r.supplier || "未指定",
+    gross_weight: r.gross ?? r.weight ?? 0,
+    tare_weight: r.tare ?? 0,
+    net_weight: r.net ?? r.weight ?? 0,
+    mode: r.mode || "single", time: r.time || "",
+  }));
+
+  const search = ($("recordsSearch").value || "").toLowerCase();
+  if (search) {
+    records = records.filter(r =>
+      r.plate.toLowerCase().includes(search) ||
+      r.cargo.toLowerCase().includes(search) ||
+      r.driver.toLowerCase().includes(search) ||
+      r.supplier.toLowerCase().includes(search)
+    );
+  }
+
+  const totalPages = Math.max(1, Math.ceil(records.length / RECORDS_PER_PAGE));
+  if (recordsPage > totalPages) recordsPage = totalPages;
+  const start = (recordsPage - 1) * RECORDS_PER_PAGE;
+  const paged = records.slice(start, start + RECORDS_PER_PAGE);
+
+  $("recordsCount").textContent = "共 " + records.length + " 条记录";
+  const tbody = $("recordsPageBody");
+  if (paged.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="11" style="color:var(--text-dim);text-align:center;padding:30px;">暂无匹配记录</td></tr>';
+  } else {
+    tbody.innerHTML = paged.map(r => `
+      <tr>
+        <td style="color:var(--text-dim)">${r.id}</td>
+        <td style="font-weight:500;">${escapeHtml(r.plate)}</td>
+        <td>${escapeHtml(r.driver)}</td>
+        <td>${escapeHtml(r.cargo)}</td>
+        <td style="color:var(--text-dim)">${escapeHtml(r.supplier)}</td>
+        <td style="font-variant-numeric:tabular-nums;">${r.gross_weight.toFixed(1)}</td>
+        <td style="font-variant-numeric:tabular-nums;color:var(--red);">${r.tare_weight.toFixed(1)}</td>
+        <td style="font-weight:600;color:var(--accent);font-variant-numeric:tabular-nums;">${r.net_weight.toFixed(1)}</td>
+        <td style="font-size:11px;color:var(--text-dim)">${r.mode === "double" ? "二次" : "一次"}</td>
+        <td style="font-size:11px;color:var(--text-dim)">${formatTimeShort(r.time)}</td>
+        <td>
+          <button class="btn btn-outline btn-sm" onclick="viewSlip(${r.id})">📃 磅单</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteRecord(${r.id})" style="margin-left:4px;">✕</button>
+        </td>
+      </tr>
+    `).join("");
+  }
+
+  let pagHTML = "";
+  pagHTML += `<button class="page-btn" onclick="goPage(${recordsPage - 1})" ${recordsPage <= 1 ? "disabled" : ""}>‹ 上一页</button>`;
+  pagHTML += `<span class="page-info">第 ${recordsPage} / ${totalPages} 页</span>`;
+  pagHTML += `<button class="page-btn" onclick="goPage(${recordsPage + 1})" ${recordsPage >= totalPages ? "disabled" : ""}>下一页 ›</button>`;
+  $("pagination").innerHTML = pagHTML;
+}
+
+function goPage(p) {
+  const totalPages = Math.max(1, Math.ceil(recordsCache.length / RECORDS_PER_PAGE));
+  recordsPage = Math.max(1, Math.min(p, totalPages));
+  renderRecordsPage();
+}
+
+function deleteRecord(id) {
+  if (!confirm("确定删除这条记录吗？")) return;
+  recordsCache = recordsCache.filter(r => r.id !== id);
+  saveRecords();
+  renderMiniRecords();
+  renderRecordsPage();
+  showToast("记录已删除", "success");
+}
+
+function exportCSV() {
+  const BOM = "\uFEFF";
+  const header = "ID,车牌号,司机,货物,供应商,毛重(kg),皮重(kg),净重(kg),称重模式,时间\n";
+  const rows = recordsCache.map(r => {
+    const net = r.net ?? r.weight ?? 0;
+    const gross = r.gross ?? r.weight ?? 0;
+    const tare = r.tare ?? 0;
+    const goods = r.goods || r.cargo || "";
+    const mode = r.mode === "double" ? "二次称重" : "一次称重";
+    return [r.id, r.plate, r.driver || "", goods, r.supplier || "", gross, tare, net, mode, formatTimeFull(r.time)].join(",");
+  }).join("\n");
+  const blob = new Blob([BOM + header + rows], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "weighbridge_records_" + new Date().toISOString().slice(0, 10) + ".csv";
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast("CSV 文件已下载", "success");
+}
+
+// ============================================================
+// STATS PAGE (computed from recordsCache)
+// ============================================================
+function renderStatsPage() {
+  const now = new Date();
+  const todayStr = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-" + String(now.getDate()).padStart(2, "0");
+
+  const todayRecords = recordsCache.filter(r => {
+    const rt = r.time || "";
+    return rt.startsWith(todayStr);
+  });
+
+  const todayCount = todayRecords.length;
+  const todayTotalNet = todayRecords.reduce((s, r) => s + (r.net ?? r.weight ?? 0), 0);
+  const todayAvgNet = todayCount > 0 ? todayTotalNet / todayCount : 0;
+
+  $("kpiGrid").innerHTML = `
+    <div class="kpi-card accent"><div class="kpi-label">今日车次</div><div class="kpi-value">${todayCount}<span class="kpi-unit">辆</span></div></div>
+    <div class="kpi-card"><div class="kpi-label">今日净重总量</div><div class="kpi-value" style="color:#4ade80;">${todayTotalNet.toFixed(0)}<span class="kpi-unit">kg</span></div></div>
+    <div class="kpi-card"><div class="kpi-label">今日平均净重</div><div class="kpi-value" style="color:#60a5fa;">${todayAvgNet.toFixed(0)}<span class="kpi-unit">kg</span></div></div>
+    <div class="kpi-card accent"><div class="kpi-label">历史总记录</div><div class="kpi-value">${recordsCache.length}<span class="kpi-unit">条</span></div></div>
+  `;
+
+  // Build last 7 days data
+  const sevenDays = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const dateStr = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+    const count = recordsCache.filter(r => (r.time || "").startsWith(dateStr)).length;
+    const label = (d.getMonth() + 1) + "/" + d.getDate();
+    sevenDays.push({ date: dateStr, count, label });
+  }
+
+  const maxCount = Math.max(1, ...sevenDays.map(d => d.count));
+  $("barChart").innerHTML = sevenDays.map(d => `
+    <div class="bar-col">
+      <div class="bar-value">${d.count}</div>
+      <div class="bar-fill" style="height:${(d.count / maxCount * 160).toFixed(0)}px"></div>
+      <div class="bar-label">${d.label}</div>
+    </div>
+  `).join("");
+}
+
+// ============================================================
+// SETTINGS PAGE
+// ============================================================
+function renderSettingsPage() {
+  $("settingsCompanyName").value = settingsData.company_name || "XX地磅站";
+  $("settingsScaleId").value = settingsData.station_id || "SC-001";
+  updateHeaderCompany();
+  renderCargoTags();
+  renderSupplierTags();
+}
+
+function saveCompanySettings() {
+  settingsData.company_name = $("settingsCompanyName").value.trim() || "XX地磅站";
+  settingsData.station_id = $("settingsScaleId").value.trim() || "SC-001";
+  saveSettings();
+  updateHeaderCompany();
+  showToast("设置已保存", "success");
+}
+
+function updateHeaderCompany() {
+  $("headerCompany").textContent = settingsData.company_name || "XX地磅站";
+}
+
+function renderCargoTags() {
+  $("cargoTags").innerHTML = cargoes.map(c => `
+    <span class="tag">${escapeHtml(c.name)}<span class="tag-remove" onclick="removeCargo(${c.id})">&times;</span></span>
+  `).join("");
+  populateDropdowns();
+}
+
+function renderSupplierTags() {
+  $("supplierTags").innerHTML = suppliers.map(s => `
+    <span class="tag">${escapeHtml(s.name)}<span class="tag-remove" onclick="removeSupplier(${s.id})">&times;</span></span>
+  `).join("");
+  populateDropdowns();
+}
+
+function addCargo() {
+  const val = $("newCargoInput").value.trim();
+  if (!val) { showToast("请输入货物品名", "error"); return; }
+  cargoes.push({ id: cargoIdCounter++, name: val });
+  saveCargoes();
+  $("newCargoInput").value = "";
+  renderCargoTags();
+  showToast("货物已添加", "success");
+}
+
+function removeCargo(id) {
+  cargoes = cargoes.filter(c => c.id !== id);
+  saveCargoes();
+  renderCargoTags();
+}
+
+function addSupplier() {
+  const val = $("newSupplierInput").value.trim();
+  if (!val) { showToast("请输入供应商名称", "error"); return; }
+  suppliers.push({ id: supplierIdCounter++, name: val });
+  saveSuppliers();
+  $("newSupplierInput").value = "";
+  renderSupplierTags();
+  showToast("供应商已添加", "success");
+}
+
+function removeSupplier(id) {
+  suppliers = suppliers.filter(s => s.id !== id);
+  saveSuppliers();
+  renderSupplierTags();
+}
+
+function populateDropdowns() {
+  $("cargoSelect").innerHTML = '<option value="">-- 选择货物 --</option>' +
+    cargoes.map(c => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</option>`).join("");
+  $("supplierSelect").innerHTML = '<option value="">-- 选择供应商 --</option>' +
+    suppliers.map(s => `<option value="${escapeHtml(s.name)}">${escapeHtml(s.name)}</option>`).join("");
+}
+
+function clearAllData() {
+  if (!clearDataConfirm) {
+    clearDataConfirm = true;
+    $("btnClearData").textContent = "⚠ 再次点击确认清空";
+    showToast("请再次点击按钮确认清空所有数据", "error");
+    setTimeout(() => { clearDataConfirm = false; $("btnClearData").textContent = "🗑 清空所有数据"; }, 5000);
+    return;
+  }
+  recordsCache = [];
+  recordIdCounter = 1;
+  cargoes = [
+    { id: 1, name: "水泥" }, { id: 2, name: "砂石" }, { id: 3, name: "钢材" },
+    { id: 4, name: "煤炭" }, { id: 5, name: "粮食" }
+  ];
+  suppliers = [
+    { id: 1, name: "海螺水泥" }, { id: 2, name: "中建一局" }, { id: 3, name: "沙河建材" },
+    { id: 4, name: "晋煤集团" }, { id: 5, name: "中粮集团" }
+  ];
+  cargoIdCounter = 6; supplierIdCounter = 6;
+  clearDataConfirm = false;
+  $("btnClearData").textContent = "🗑 清空所有数据";
+  saveRecords(); saveCargoes(); saveSuppliers();
+  renderMiniRecords();
+  renderCargoTags();
+  renderSupplierTags();
+  if ($("pageRecords").classList.contains("active")) renderRecordsPage();
+  if ($("pageStats").classList.contains("active")) renderStatsPage();
+  showToast("所有数据已清空", "success");
+}
+
+// ============================================================
+// SLIP (磅单) MODAL
+// ============================================================
+function viewSlip(id) {
+  const r = recordsCache.find(r => r.id === id);
+  if (!r) { showToast("记录不存在", "error"); return; }
+  const net = r.net ?? r.weight ?? 0;
+  const gross = r.gross ?? r.weight ?? 0;
+  const tare = r.tare ?? 0;
+  const cargo = r.goods || r.cargo || "未指定";
+
+  $("modalContent").innerHTML = `
+    <h2>${escapeHtml(settingsData.company_name)}</h2>
+    <p style="text-align:center;font-size:12px;color:#888;margin-bottom:16px;">地磅编号: ${escapeHtml(settingsData.station_id)}</p>
+    <div class="modal-divider"></div>
+    <table>
+      <tr><td>日期</td><td>${formatTimeFull(r.time)}</td></tr>
+      <tr><td>车牌号</td><td>${escapeHtml(r.plate)}</td></tr>
+      <tr><td>司机</td><td>${escapeHtml(r.driver || "未知")}</td></tr>
+      <tr><td>货物</td><td>${escapeHtml(cargo)}</td></tr>
+      <tr><td>供应商</td><td>${escapeHtml(r.supplier || "未指定")}</td></tr>
+      <tr><td>毛重</td><td style="font-size:16px;">${gross.toFixed(1)} kg</td></tr>
+      <tr><td>皮重</td><td>${tare.toFixed(1)} kg</td></tr>
+      <tr style="font-weight:700;font-size:16px;"><td>净重</td><td>${net.toFixed(1)} kg</td></tr>
+      <tr><td>称重模式</td><td>${r.mode === "double" ? "二次称重" : "一次称重"}</td></tr>
+    </table>
+    <div class="modal-divider"></div>
+    <div class="modal-footer">操作员: Admin &nbsp;|&nbsp; 签名: __________</div>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-sm" onclick="closeModalDirect()">关闭</button>
+      <button class="btn btn-primary btn-sm" onclick="window.print()">🖶 打印</button>
+    </div>
+  `;
+  $("modalOverlay").classList.add("show");
+}
+
+function closeModal(e) {
+  if (e && e.target !== $("modalOverlay")) return;
+  $("modalOverlay").classList.remove("show");
+}
+function closeModalDirect() { $("modalOverlay").classList.remove("show"); }
+
+// ============================================================
+// CAMERA
+// ============================================================
+function updateCameraTimestamp() {
+  const now = new Date();
+  const pad = n => String(n).padStart(2, "0");
+  $("cameraTimestamp").textContent =
+    now.getFullYear() + "-" + pad(now.getMonth() + 1) + "-" + pad(now.getDate()) +
+    " " + pad(now.getHours()) + ":" + pad(now.getMinutes()) + ":" + pad(now.getSeconds());
+}
+
+async function initCamera() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480, facingMode: "environment" } });
+    const video = $("cameraVideo");
+    video.srcObject = stream;
+    video.style.display = "block";
+    $("cameraPlaceholder").style.display = "none";
+  } catch {}
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function switchPage(pageName) {
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+  const pageEl = document.getElementById("page" + pageName.charAt(0).toUpperCase() + pageName.slice(1));
+  if (pageEl) pageEl.classList.add("active");
+  const navEl = document.querySelector(`.nav-item[data-page="${pageName}"]`);
+  if (navEl) navEl.classList.add("active");
+
+  if (pageName === "records") { recordsPage = 1; renderRecordsPage(); }
+  if (pageName === "stats") renderStatsPage();
+  if (pageName === "settings") renderSettingsPage();
+}
+
+document.querySelectorAll(".nav-item").forEach(item => {
+  item.addEventListener("click", () => switchPage(item.dataset.page));
+});
+
+// ============================================================
+// TOAST
+// ============================================================
+function showToast(msg, type) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.className = "toast " + type + " show";
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 2500);
+}
+
+// ============================================================
+// UTILS
+// ============================================================
+const escapeDiv = document.createElement("div");
+function escapeHtml(str) { escapeDiv.textContent = String(str ?? ""); return escapeDiv.innerHTML; }
+
+function formatTimeShort(isoStr) {
+  const d = new Date(isoStr);
+  if (isNaN(d.getTime())) return String(isoStr);
+  const pad = n => String(n).padStart(2, "0");
+  return pad(d.getMonth() + 1) + "-" + pad(d.getDate()) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes());
+}
+
+function formatTimeFull(isoStr) {
+  const d = new Date(isoStr);
+  if (isNaN(d.getTime())) return String(isoStr);
+  const pad = n => String(n).padStart(2, "0");
+  return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) +
+    " " + pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds());
+}
+
+// ============================================================
+// HEADER CLOCK
+// ============================================================
+function updateHeaderClock() {
+  const now = new Date();
+  const pad = n => String(n).padStart(2, "0");
+  $("headerTime").textContent =
+    now.getFullYear() + "-" + pad(now.getMonth() + 1) + "-" + pad(now.getDate()) +
+    " " + pad(now.getHours()) + ":" + pad(now.getMinutes()) + ":" + pad(now.getSeconds());
+}
+setInterval(updateHeaderClock, 1000);
+
+// ============================================================
+// POLLING (simulated)
+// ============================================================
+async function pollLoop() {
+  await fetchWeight();
+  scheduleNextPoll();
+}
+
+function scheduleNextPoll() {
+  pollTimeout = setTimeout(pollLoop, 1000);
+}
+
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    if (pollTimeout) { clearTimeout(pollTimeout); pollTimeout = null; }
+  } else {
+    pollLoop();
+  }
+});
+
+// ============================================================
+// INIT
+// ============================================================
+function init() {
+  loadAllData();
+  buildWeightDisplay();
+  updateDigitDisplay("25000.0");
+
+  updateSummaryDisplay(0, 0, 0);
+  updateModeUI();
+  populateDropdowns();
+  renderMiniRecords();
+  updateHeaderCompany();
+  updateHeaderClock();
+
+  pollLoop();
+  initCamera();
+
+  $("plateInput").addEventListener("keydown", e => { if (e.key === "Enter") handleRecord(); });
+
+  document.addEventListener("keydown", e => {
+    if (e.ctrlKey || e.metaKey || e.target.tagName === "INPUT" || e.target.tagName === "SELECT") return;
+    switch(e.key.toLowerCase()) {
+      case "g": captureGross(); break;
+      case "t": captureTare(); break;
+      case "r": handleRecord(); break;
+      case "c": clearWeighState(); break;
+    }
+  });
+}
+
+init();
+</script>
+</body>
+</html>
