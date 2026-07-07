@@ -1,4 +1,4 @@
-﻿import random
+import random
 import math
 import time
 import re
@@ -10,7 +10,7 @@ from datetime import datetime, date, timedelta
 from flask import Flask, jsonify, request, send_from_directory, Response
 from flask_cors import CORS
 
-app = Flask(__name__, static_folder="static", static_url_path="")
+app = Flask(__name__, static_folder="static", static_url_path="/static")
 CORS(app)
 
 # ==================== Storage ====================
@@ -55,7 +55,7 @@ def simulate_weight():
 # ==================== Routes ====================
 @app.route("/")
 def index():
-    return send_from_directory("static", "index.html")
+    return send_from_directory("static", "v2.html")
 
 
 @app.route("/v2")

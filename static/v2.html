@@ -186,7 +186,7 @@
   .page-btn:disabled { opacity: 0.35; cursor: not-allowed; }
   .page-info { font-size: 13px; color: var(--text-dim); }
 
-  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .kpi-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 24px; }
   .kpi-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 20px; text-align: center; }
   .kpi-card .kpi-label { font-size: 12px; color: var(--text-dim); letter-spacing: 1px; margin-bottom: 8px; }
   .kpi-card .kpi-value { font-size: 32px; font-weight: 700; font-variant-numeric: tabular-nums; font-family: "SF Mono","Consolas",monospace; }
@@ -232,7 +232,58 @@
     .weigh-grid { grid-template-columns: 1fr; }
     .weigh-side-panel { grid-column: 1; grid-row: auto; }
     .kpi-grid { grid-template-columns: repeat(2,1fr); }
+    .top-plates-card { margin-top:12px; }
   }
+  /* Empty state */
+  .empty-state { text-align:center; padding:28px 0; }
+  .empty-icon { font-size:36px; display:block; margin-bottom:8px; }
+  .empty-text { font-size:13px; color:var(--text-dim); }
+  .empty-hint { font-size:11px; color:#3a3f50; display:block; margin-top:4px; }
+
+  /* Stability badge */
+  .stability-badge { display:inline-flex; align-items:center; gap:6px; padding:4px 12px; border-radius:12px; font-size:11px; letter-spacing:0.5px; transition:all 0.3s; }
+  .stability-badge.stable { background:#0a1a10; color:#4ade80; border:1px solid #14532d; }
+  .stability-badge.unstable { background:#1a1008; color:#f59e0b; border:1px solid #5c3d0e; }
+  .stability-dot { width:6px; height:6px; border-radius:50%; display:inline-block; }
+  .stability-badge.stable .stability-dot { background:#4ade80; animation:pulse2 1.5s ease-in-out infinite; }
+  .stability-badge.unstable .stability-dot { background:#f59e0b; animation:pulse2 0.8s ease-in-out infinite; }
+
+  /* Sparkline */
+  .sparkline-row { display:flex; align-items:center; gap:10px; margin-top:10px; justify-content:center; }
+  .sparkline-canvas { border:1px solid #1a1d2a; border-radius:4px; }
+
+  /* Overload alert */
+  .overload-alert { display:none; align-items:center; gap:6px; padding:8px 16px; border-radius:6px; background:#2b1010; border:1px solid #5c1a1a; color:#f87171; font-size:13px; font-weight:600; animation:flash-alert 0.6s ease-in-out infinite alternate; }
+  .overload-alert.show { display:inline-flex; }
+  @keyframes flash-alert { from{opacity:1} to{opacity:0.5} }
+  .weight-panel.overload { border-color:#f87171 !important; box-shadow:0 0 20px rgba(248,113,113,0.15); }
+
+  /* Shortcuts panel */
+  .shortcuts-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.75); display:none; align-items:center; justify-content:center; z-index:3000; }
+  .shortcuts-overlay.show { display:flex; }
+  .shortcuts-panel { background:var(--card-bg); border:1px solid var(--border); border-radius:12px; padding:28px 32px; max-width:400px; width:90%; }
+  .shortcuts-panel h3 { font-size:16px; color:var(--accent); margin-bottom:16px; }
+  .shortcuts-panel .kbd { display:inline-block; padding:2px 8px; border-radius:3px; background:#1a1d2a; border:1px solid #2a2f4a; font-family:'SF Mono','Consolas',monospace; font-size:12px; color:var(--accent); min-width:22px; text-align:center; }
+  .shortcuts-panel .shortcut-row { display:flex; justify-content:space-between; align-items:center; padding:6px 0; font-size:13px; color:var(--text-dim); border-bottom:1px solid #1a1d28; }
+  .shortcuts-panel .shortcut-row:last-child { border-bottom:none; }
+  .shortcuts-panel .shortcut-hint { font-size:11px; color:#3a3f50; margin-top:12px; text-align:center; }
+
+  /* Top plates table */
+  .top-plates-card { background:var(--card-bg); border:1px solid var(--border); border-radius:10px; padding:20px; }
+  .top-plates-card .rank-num { display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:4px; font-size:12px; font-weight:700; }
+  .top-plates-card .rank-num.r1 { background:#f0b840; color:#111318; }
+  .top-plates-card .rank-num.r2 { background:#a0a8b4; color:#111318; }
+  .top-plates-card .rank-num.r3 { background:#b07040; color:#111318; }
+  .top-plates-card .rank-num.rn { background:#1a1d2a; color:var(--text-dim); }
+
+  /* Date filter */
+  .records-date { padding:8px 12px; border:1px solid var(--input-border); border-radius:6px; background:var(--input-bg); color:var(--text); font-size:13px; outline:none; width:150px; }
+  .records-date:focus { border-color:var(--accent); }
+
+  /* Slip enhancement */
+  .modal-seal { text-align:center; margin-top:8px; }
+  .modal-seal-circle { display:inline-flex; align-items:center; justify-content:center; width:64px; height:64px; border-radius:50%; border:3px solid #cc0000; color:#cc0000; font-size:11px; transform:rotate(-15deg); opacity:0.7; }
+
 </style>
 </head>
 <body>
@@ -277,7 +328,14 @@
       <div class="weigh-grid">
         <div class="card weigh-weight-panel">
           <div class="card-label">实时重量</div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+            <span class="overload-alert" id="overloadAlert">⚠ 超载警告！重量超出安全范围</span>
+          </div>
           <div class="weight-display" id="weightDisplay"></div>
+          <div class="sparkline-row">
+            <span class="stability-badge stable" id="stabilityBadge"><span class="stability-dot"></span> 统计中...</span>
+            <canvas class="sparkline-canvas" id="sparklineCanvas" width="240" height="52"></canvas>
+          </div>
           <div class="weight-summary">
             <div class="weight-item">
               <div class="label">毛重</div>
@@ -357,6 +415,7 @@
       <div class="card">
         <div class="records-header">
           <input type="text" class="records-search" id="recordsSearch" placeholder="搜索车牌号或货物..." oninput="renderRecordsPage()">
+          <input type="date" class="records-date" id="recordsDate" onchange="renderRecordsPage()" title="按日期筛选">
           <div style="display:flex;gap:8px;">
             <span class="records-count" id="recordsCount">共 0 条记录</span>
             <button class="btn btn-outline btn-sm" onclick="exportCSV()">📜 导出CSV</button>
@@ -382,6 +441,18 @@
       <div class="chart-card">
         <div class="chart-title">📱 近7天过磅车次</div>
         <div class="bar-chart" id="barChart"></div>
+      </div>
+    </div>
+
+    <!-- ====== Settings Page ====== -->
+          <div class="top-plates-card" style="margin-top:16px;" id="topPlatesCard">
+        <div class="chart-title">🏆 高频车辆 TOP 5</div>
+        <table class="mini-table">
+          <thead><tr><th>排名</th><th>车牌号</th><th>过磅次数</th><th>总净重(kg)</th></tr></thead>
+          <tbody id="topPlatesBody">
+            <tr><td colspan="4"><div class="empty-state"><span class="empty-icon">📮</span><span class="empty-text">暂无数据</span></div></td></tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
@@ -439,6 +510,18 @@
 
 <div class="toast" id="toast"></div>
 
+<div class="shortcuts-overlay" id="shortcutsOverlay" onclick="toggleShortcuts()">
+  <div class="shortcuts-panel" onclick="event.stopPropagation()">
+    <h3>⌨ 键盘快捷键</h3>
+    <div class="shortcut-row"><span>锁定毛重</span><span class="kbd">G</span></div>
+    <div class="shortcut-row"><span>锁定皮重</span><span class="kbd">T</span></div>
+    <div class="shortcut-row"><span>记录称重</span><span class="kbd">R</span></div>
+    <div class="shortcut-row"><span>清零重置</span><span class="kbd">C</span></div>
+    <div class="shortcut-row"><span>显示帮助</span><span class="kbd">?</span></div>
+    <div class="shortcut-hint">按 ESC 或点击背景关闭</div>
+  </div>
+</div>
+
 <script>
 // ============================================================
 // CONSTANTS & GLOBALS
@@ -454,6 +537,13 @@ let pollTimeout = null;
 let prevDigits = [0, 0, 0, 0, 0, 0];
 let isConnected = true;
 let fetchErrorCount = 0;
+let weightHistory = [];
+let isStable = false;
+const STABILITY_WINDOW = 10;
+const STABILITY_THRESHOLD = 50;
+let overloadThreshold = 49000;
+let isOverload = false;
+let sparklineData = new Array(30).fill(25000);
 
 let weighState = { gross: null, tare: null, mode: "single" };
 let recordsCache = [];
@@ -621,6 +711,11 @@ async function fetchWeight() {
     }
     updateSummaryDisplay(data.gross, data.tare, data.net);
     updateCameraTimestamp();
+    checkStability(currentWeightValue);
+    checkOverload(currentWeightValue);
+    sparklineData.push(currentWeightValue);
+    if (sparklineData.length > 30) sparklineData.shift();
+    drawSparkline();
     setConnectionStatus(true);
   } catch (err) {
     console.error("Fetch weight error:", err);
@@ -638,6 +733,7 @@ function updateSummaryDisplay(gross, tare, net) {
 // WEIGH STATE MACHINE
 // ============================================================
 function captureGross() {
+  if (!isStable && weightHistory.length >= 5) { showToast("\u91cd\u91cf\u4e0d\u7a33\u5b9a\uff0c\u8bf7\u7b49\u5f85\u7a33\u5b9a\u540e\u518d\u9501\u5b9a", "error"); return; }
   weighState.gross = currentWeightValue;
   weighState.tare = null;
   updateModeUI();
@@ -645,6 +741,7 @@ function captureGross() {
 }
 
 function captureTare() {
+  if (!isStable && weightHistory.length >= 5) { showToast("\u91cd\u91cf\u4e0d\u7a33\u5b9a\uff0c\u8bf7\u7b49\u5f85\u7a33\u5b9a\u540e\u518d\u9501\u5b9a", "error"); return; }
   if (weighState.gross === null) {
     showToast("请先锁定毛重", "error"); return;
   }
@@ -664,10 +761,111 @@ function manualTare() {
 
 function clearWeighState() {
   weighState = { gross: null, tare: null, mode: "single" };
+  weightHistory = [];
+  isStable = false;
+  drawSparkline();
+  var badge = $("stabilityBadge");
+  badge.className = "stability-badge stable";
+  badge.innerHTML = '<span class="stability-dot"></span> \u7edf\u8ba1\u4e2d...';
   updateModeUI();
   $("plateInput").value = "";
   $("driverInput").value = "";
   showToast("状态已清零", "success");
+}
+
+
+// ============================================================
+// STABILITY CHECK
+// ============================================================
+function checkStability(weight) {
+  weightHistory.push(weight);
+  if (weightHistory.length > STABILITY_WINDOW) weightHistory.shift();
+  if (weightHistory.length < 5) {
+    isStable = false;
+    $("stabilityBadge").className = "stability-badge unstable";
+    $("stabilityBadge").innerHTML = '<span class="stability-dot"></span> \u7edf\u8ba1\u4e2d...';
+    return false;
+  }
+  const mean = weightHistory.reduce((a,b) => a+b, 0) / weightHistory.length;
+  const variance = weightHistory.reduce((a,b) => a+(b-mean)*(b-mean), 0) / weightHistory.length;
+  const stddev = Math.sqrt(variance);
+  isStable = stddev < STABILITY_THRESHOLD;
+  const badge = $("stabilityBadge");
+  if (isStable) {
+    badge.className = "stability-badge stable";
+    badge.innerHTML = '<span class="stability-dot"></span> \u7a33\u5b9a \u00b7 \u03c3=' + stddev.toFixed(0);
+  } else {
+    badge.className = "stability-badge unstable";
+    badge.innerHTML = '<span class="stability-dot"></span> \u6ce2\u52a8\u4e2d \u00b7 \u03c3=' + stddev.toFixed(0);
+  }
+  return isStable;
+}
+
+// ============================================================
+// SPARKLINE
+// ============================================================
+function drawSparkline() {
+  const canvas = $("sparklineCanvas");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const w = canvas.width, h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+  if (sparklineData.length < 2) return;
+  const min = Math.min(...sparklineData), max = Math.max(...sparklineData);
+  const range = Math.max(max - min, 10);
+  ctx.strokeStyle = "#f0b840";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  sparklineData.forEach((v, i) => {
+    const x = (i / (sparklineData.length - 1)) * w;
+    const y = h - ((v - min) / range) * (h - 8) - 4;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+  ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.closePath();
+  ctx.fillStyle = "rgba(240,184,64,0.08)";
+  ctx.fill();
+}
+
+// ============================================================
+// OVERLOAD CHECK
+// ============================================================
+function checkOverload(weight) {
+  if (weight > overloadThreshold) {
+    if (!isOverload) {
+      isOverload = true;
+      $("overloadAlert").classList.add("show");
+      try { var u = new SpeechSynthesisUtterance("\u8b66\u544a\uff0c\u91cd\u91cf\u8d85\u8f7d"); u.lang="zh-CN"; speechSynthesis.speak(u); } catch(e) {}
+      $("btnRecord").style.background = "#5c1a1a";
+      $("btnRecord").style.color = "#f87171";
+    }
+  } else {
+    if (isOverload) {
+      isOverload = false;
+      $("overloadAlert").classList.remove("show");
+      $("btnRecord").style.background = "var(--accent)";
+      $("btnRecord").style.color = "#111318";
+    }
+  }
+}
+
+// ============================================================
+// SPEECH
+// ============================================================
+function speakWeight(plate, net) {
+  if (!("speechSynthesis" in window)) return;
+  try {
+    var u = new SpeechSynthesisUtterance("\u8f66\u724c " + (plate||"").replace(/(.{1})/g,"$1 ") + " \u51c0\u91cd " + (net||0).toFixed(0) + " \u5343\u514b");
+    u.lang = "zh-CN"; u.rate = 1.0; u.pitch = 1.0;
+    speechSynthesis.speak(u);
+  } catch(e) {}
+}
+
+// ============================================================
+// SHORTCUTS PANEL
+// ============================================================
+function toggleShortcuts() {
+  $("shortcutsOverlay").classList.toggle("show");
 }
 
 function updateModeUI() {
@@ -773,6 +971,10 @@ function renderRecordsPage() {
   }));
 
   const search = ($("recordsSearch").value || "").toLowerCase();
+  const dateFilter = ($("recordsDate").value || "").trim();
+  if (dateFilter) {
+    records = records.filter(r => (r.time || "").startsWith(dateFilter));
+  }
   if (search) {
     records = records.filter(r =>
       r.plate.toLowerCase().includes(search) ||
@@ -975,6 +1177,17 @@ function populateDropdowns() {
     cargoes.map(c => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</option>`).join("");
   $("supplierSelect").innerHTML = '<option value="">-- 选择供应商 --</option>' +
     suppliers.map(s => `<option value="${escapeHtml(s.name)}">${escapeHtml(s.name)}</option>`).join("");
+}
+
+async function saveOverloadThreshold() {
+  const val = parseInt($("settingsOverloadThreshold").value);
+  if (isNaN(val) || val < 1000 || val > 50000) { showToast("\u9608\u503c\u987b\u5728 1000~50000 \u4e4b\u95f4", "error"); return; }
+  overloadThreshold = val;
+  isOverload = false;
+  $("overloadAlert").classList.remove("show");
+  $("btnRecord").style.background = "var(--accent)";
+  $("btnRecord").style.color = "#111318";
+  showToast("\u8d85\u8f7d\u9608\u503c\u5df2\u8bbe\u4e3a " + val + " kg", "success");
 }
 
 async function clearAllData() {
@@ -1189,6 +1402,8 @@ async function init() {
       case "t": captureTare(); break;
       case "r": handleRecord(); break;
       case "c": clearWeighState(); break;
+      case "?": toggleShortcuts(); break;
+      case "escape": $("shortcutsOverlay").classList.remove("show"); break;
     }
   });
 }
