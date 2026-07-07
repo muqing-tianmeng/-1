@@ -1,0 +1,3 @@
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+:root { --bg: #080b12; --sidebar-bg: #05070d; --card-bg: #0f121c; --card-bg-hover: #141826; --border: #1a1e2c; --border-light: #222738; --text: #d0d5e0; --text-dim: #6b7190; --text-muted: #444860; --accent: #f0b840; --accent-glow: rgba(240,184,64,0.12); --green: #4ade80; --red: #f87171; --blue: #60a5fa; --orange: #f59e0b; --input-bg: #0a0d16; --input-border: #1e2232; --input-focus: #2a3050; --shadow-card: 0 1px 3px rgba(0,0,0,0.4); }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: grid; grid-template-columns: 230px 1fr; -webkit-font-smoothing: antialiased; }

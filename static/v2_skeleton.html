@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>地磅称重系统 v2.2</title>
+<link rel="stylesheet" href="/static/v2_styles.css">
+</head>
+<body>
+<aside class="sidebar">
+  <div class="sidebar-logo"><span class="logo-icon">⚖</span><h2>地磅称重</h2><div class="ver">v2.2 · 联网版</div></div>
+  <nav class="sidebar-nav">
+    <div class="nav-item active" data-page="weigh"><span class="nav-icon">⚖</span> 称重台</div>
+    <div class="nav-item" data-page="records"><span class="nav-icon">📋</span> 过磅记录</div>
+    <div class="nav-item" data-page="stats"><span class="nav-icon">📈</span> 数据统计</div>
+    <div class="nav-item" data-page="settings"><span class="nav-icon">⚙</span> 系统设置</div>
+  </nav>
+  <div class="sidebar-footer">&copy; 2025 Weighbridge API Demo</div>
+</aside>
+<main class="main">
+  <header class="main-header">
+    <span class="header-company" id="headerCompany">XX地磅站</span>
+    <div class="header-right">
+      <div class="header-status" id="headerStatus"><span class="header-status-dot"></span><span id="headerStatusText">传感器在线</span></div>
+      <span class="header-time" id="headerTime"></span>
+    </div>
+  </header>
+  <div class="main-content">
+    <div class="page active" id="pageWeigh">
+      <div class="weigh-grid">
+        <div class="weigh-weight-panel">
+          <div class="weight-panel" id="weightPanel">
+            <div class="card-header"><span class="card-label">📍 实时重量</span><span class="overload-alert" id="overloadAlert">⚠ 超载警告！重量超出安全范围</span></div>
+            <div class="weight-display" id="weightDisplay"></div>
+            <div class="stability-row"><span class="stability-badge stable" id="stabilityBadge"><span class="stability-dot"></span> 统计中...</span><canvas class="sparkline-canvas" id="sparklineCanvas" width="220" height="48"></canvas></div>
+            <div class="weight-summary">
+              <div class="weight-item"><div class="label">毛重</div><div class="value gross" id="grossDisplay">--</div></div>
+              <div class="weight-item"><div class="label">皮重</div><div class="value tare" id="tareDisplay">--</div></div>
+              <div class="weight-item"><div class="label">净重</div><div class="value net" id="netDisplay">--</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="weigh-stats-row">
+          <div class="mini-stat accent"><div class="ms-val" id="todayCount">0</div><div class="ms-lbl">今日车次</div></div>
+          <div class="mini-stat"><div class="ms-val" style="color:#4ade80;" id="todayNet">0</div><div class="ms-lbl">今日净重总量 kg</div></div>
+          <div class="mini-stat"><div class="ms-val" style="color:#60a5fa;" id="totalRecords">0</div><div class="ms-lbl">历史总记录</div></div>
+        </div>
+        <div class="weigh-form-panel">
+          <div class="card">
+            <div class="card-header"><span class="card-label">📝 过磅信息</span></div>
+            <div class="form-grid">
+              <div class="form-group"><label>🚗 车牌号码</label><input type="text" id="plateInput" placeholder="例：京A12345" maxlength="10" autocomplete="off"></div>
+              <div class="form-group"><label>👁 司机姓名</label><input type="text" id="driverInput" placeholder="司机姓名" maxlength="20"></div>
+              <div class="form-group"><label>🏚 收货单位</label><input type="text" id="customerInput" placeholder="客户/收货单位" maxlength="30"></div>
+              <div class="form-group"><label>📦 货物品名</label><select id="cargoSelect"><option value="">-- 选择货物 --</option></select></div>
+              <div class="form-group"><label>📹 规格型号</label><input type="text" id="specInput" placeholder="规格/型号" maxlength="20"></div>
+              <div class="form-group"><label>🏬 供应商</label><select id="supplierSelect"><option value="">-- 选择供应商 --</option></select></div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+              <span id="modeBadge" class="mode-indicator" style="background:#11182a;color:#60a5fa;border:1px solid #1a2a4a;">📗 一次称重模式</span>
+              <span style="font-size:11px;color:var(--text-muted);">按 <b style="color:var(--accent);">?</b> 查看快捷键</span>
+            </div>
+            <div class="btn-row">
+              <button class="btn btn-primary" id="btnRecord">📝 记录称重</button>
+              <button class="btn btn-outline" id="btnGross" onclick="captureGross()">⚖ 毛重</button>
+              <button class="btn btn-outline" id="btnTare" onclick="captureTare()" disabled>⚖ 皮重</button>
+              <button class="btn btn-outline" id="btnTareManual" onclick="manualTare()">🔡 去皮</button>
+              <button class="btn btn-outline" id="btnClear" onclick="clearWeighState()">↩ 清零</button>
+            </div>
+          </div>
+        </div>
+        <div class="weigh-side-panel">
+          <div class="card camera-card">
+            <div class="card-label">📲 实时画面</div>
+            <div class="camera-view" id="cameraView">
+              <div class="camera-placeholder" id="cameraPlaceholder"><span class="icon">📲</span>等待摄像头...</div>
+              <video id="cameraVideo" style="display:none" autoplay playsinline></video>
+              <div class="camera-crosshair"></div><div class="camera-label" id="cameraTimestamp"></div>
+            </div>
+          </div>
+          <div class="card" style="flex:1;overflow:hidden;display:flex;flex-direction:column;">
+            <div class="card-label">📋 最近记录</div>
+            <div style="overflow-y:auto;flex:1;"><table class="mini-table"><thead><tr><th>时间</th><th>车牌</th><th>净重</th></tr></thead><tbody id="miniRecordsBody"><tr><td colspan="3" style="color:var(--text-dim);text-align:center;padding:20px;">暂无记录</td></tr></tbody></table></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="page" id="pageRecords">
+      <div class="card">
+        <div class="records-header">
+          <input type="text" class="records-search" id="recordsSearch" placeholder="搜索车牌号/货物/客户..." oninput="renderRecordsTable()">
+          <input type="date" class="records-date" id="recordsDate" onchange="renderRecordsTable()" title="按日期筛选">
+          <div style="display:flex;gap:10px;align-items:center;"><span class="records-count" id="recordsCount">共 0 条记录</span><button class="btn btn-outline btn-sm" onclick="exportCSV()">📤 导出CSV</button></div>
+        </div>
+        <div style="overflow-x:auto;"><table class="records-table"><thead><tr><th>#</th><th>车牌号</th><th>司机</th><th>收货单位</th><th>货物</th><th>规格</th><th>供应商</th><th>毛重(kg)</th><th>皮重(kg)</th><th>净重(kg)</th><th>模式</th><th>时间</th><th>操作</th></tr></thead><tbody id="recordsPageBody"></tbody></table></div>
+        <div class="pagination" id="pagination"></div>
+      </div>
+    </div>
+    <div class="page" id="pageStats">
+      <div class="kpi-grid" id="kpiGrid"></div>
+      <div class="chart-card"><div class="chart-title">📅 近7天过磅车次</div><div class="bar-chart" id="barChart"></div></div>
+      <div class="top-plates-card" style="margin-top:16px;" id="topPlatesCard"><div class="chart-title">🏆 高频车辆 TOP 5</div><table class="mini-table"><thead><tr><th>排名</th><th>车牌号</th><th>过磅次数</th><th>总净重(kg)</th></tr></thead><tbody id="topPlatesBody"><tr><td colspan="4"><div class="empty-state"><span class="empty-icon">📦</span><span class="empty-text">暂无数据</span></div></td></tr></tbody></table></div>
+    </div>
+    <div class="page" id="pageSettings">
+      <div class="settings-section"><h3>🏚 公司信息</h3><div class="settings-row"><div class="form-group"><label>公司名称</label><input type="text" id="settingsCompanyName" placeholder="输入公司名称" maxlength="30"></div><div class="form-group"><label>地磅编号</label><input type="text" id="settingsScaleId" placeholder="如：SC-001" maxlength="20"></div><button class="btn btn-primary btn-sm" onclick="saveCompanySettings()">💾 保存</button></div></div>
+      <div class="settings-section"><h3>🚨 超载警告设置</h3><div class="settings-row"><div class="form-group"><label>超载阈值 (kg)</label><input type="number" id="settingsOverloadThreshold" placeholder="49000" min="1000" max="50000" step="100"></div><button class="btn btn-primary btn-sm" onclick="saveOverloadThreshold()">保存</button></div></div>
+      <div class="settings-section"><h3>📦 货物管理 <span style="font-size:11px;color:var(--text-muted);font-weight:400;">品名 + 规格</span></h3><div class="settings-row"><div class="form-group"><input type="text" id="newCargoName" placeholder="货物品名" maxlength="20"></div><div class="form-group"><input type="text" id="newCargoSpec" placeholder="规格/型号（可选）" maxlength="20"></div><button class="btn btn-primary btn-sm" onclick="addCargo()">+ 添加</button></div><div class="tag-list" id="cargoTags"></div></div>
+      <div class="settings-section"><h3>🏬 供应商管理</h3><div class="settings-row"><div class="form-group"><input type="text" id="newSupplierInput" placeholder="新增供应商名称" maxlength="30"></div><button class="btn btn-primary btn-sm" onclick="addSupplier()">+ 添加</button></div><div class="tag-list" id="supplierTags"></div></div>
+      <div class="settings-section"><h3>🏚 收货单位管理</h3><div class="settings-row"><div class="form-group"><input type="text" id="newCustomerInput" placeholder="新增收货单位名称" maxlength="30"></div><button class="btn btn-primary btn-sm" onclick="addCustomer()">+ 添加</button></div><div class="tag-list" id="customerTags"></div></div>
+      <div class="settings-section"><h3>⚠ 危险操作</h3><button class="btn btn-danger btn-sm" id="btnClearData" onclick="clearAllData()">🗑 清空所有数据</button><span style="font-size:12px;color:var(--text-dim);margin-left:10px;">此操作不可恢复</span></div>
+    </div>
+  </div>
+</main>
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)"><div class="modal" id="modalContent" onclick="event.stopPropagation()"></div></div>
+<div class="toast" id="toast"></div>
+<div class="shortcuts-overlay" id="shortcutsOverlay" onclick="toggleShortcuts()"><div class="shortcuts-panel" onclick="event.stopPropagation()"><h3>⌨ 键盘快捷键</h3><div class="shortcut-row"><span>锁定毛重</span><span class="kbd">G</span></div><div class="shortcut-row"><span>锁定皮重</span><span class="kbd">T</span></div><div class="shortcut-row"><span>记录称重</span><span class="kbd">R</span></div><div class="shortcut-row"><span>清零重置</span><span class="kbd">C</span></div><div class="shortcut-row"><span>显示帮助</span><span class="kbd">?</span></div><div class="shortcut-hint">按 ESC 或点击背景关闭</div></div></div>
+</body></html>

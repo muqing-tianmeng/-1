@@ -27,6 +27,10 @@ suppliers_list = []
 suppliers_lock = threading.Lock()
 suppliers_id_counter = 0
 
+customers_list = []
+customers_lock = threading.Lock()
+customers_id_counter = 0
+
 settings_data = {"company_name": "XX地磅站", "station_id": "DB-2024-001"}
 settings_lock = threading.Lock()
 
@@ -141,6 +145,8 @@ def add_record():
             ("plate", plate),
             ("driver", (data.get("driver") or "").strip()),
             ("goods", (data.get("goods") or "").strip()),
+            ("spec", (data.get("spec") or "").strip()),
+            ("customer", (data.get("customer") or "").strip()),
             ("supplier", (data.get("supplier") or "").strip()),
             ("gross", gross),
             ("tare", tare_val),
@@ -184,7 +190,9 @@ def get_records():
                  kw in r["plate"].lower() or
                  kw in r["driver"].lower() or
                  kw in r["goods"].lower() or
-                 kw in r["supplier"].lower()]
+                 kw in r["supplier"].lower() or
+                 kw in r.get("customer","").lower() or
+                 kw in r.get("spec","").lower()]
 
     total = len(items)
     start = (page - 1) * per_page
@@ -310,7 +318,8 @@ def add_goods():
         return jsonify({"success": False, "error": "货物名称不能为空"}), 400
     with goods_lock:
         goods_id_counter += 1
-        item = {"id": goods_id_counter, "name": name}
+        spec = (data.get("spec") or "").strip()
+        item = {"id": goods_id_counter, "name": name, "spec": spec}
         goods_list.append(item)
     return jsonify({"success": True, **item})
 
@@ -354,6 +363,37 @@ def delete_supplier(sid):
                 del suppliers_list[i]
                 return jsonify({"success": True})
     return jsonify({"success": False, "error": "供应商不存在"}), 404
+
+
+# ---- Customers ----
+@app.route("/api/customers", methods=["GET"])
+def get_customers():
+    with customers_lock:
+        return jsonify({"customers": list(customers_list)})
+
+
+@app.route("/api/customers", methods=["POST"])
+def add_customer():
+    global customers_id_counter
+    data = request.get_json(silent=True) or {}
+    name = (data.get("name") or "").strip()
+    if not name:
+        return jsonify({"success": False, "error": "??????????"}), 400
+    with customers_lock:
+        customers_id_counter += 1
+        item = {"id": customers_id_counter, "name": name}
+        customers_list.append(item)
+    return jsonify({"success": True, **item})
+
+
+@app.route("/api/customers/<int:cid>", methods=["DELETE"])
+def delete_customer(cid):
+    with customers_lock:
+        for i, c in enumerate(customers_list):
+            if c["id"] == cid:
+                del customers_list[i]
+                return jsonify({"success": True})
+    return jsonify({"success": False, "error": "???????"}), 404
 
 
 # ---- Settings ----
