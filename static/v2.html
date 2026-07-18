@@ -3,16 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>地磅称重系统 v2.2</title>
+<title>地磅称重系统 v2.3</title>
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 :root{
-  --bg:#080b12;--sidebar-bg:#05070d;--card-bg:#0f121c;--card-bg-hover:#141826;
-  --border:#1a1e2c;--border-light:#222738;--text:#d0d5e0;--text-dim:#6b7190;
-  --text-muted:#444860;--accent:#f0b840;--accent-glow:rgba(240,184,64,0.12);
+  --bg:#0a0f1a;--sidebar-bg:#070b14;--card-bg:#111827;--surface:#151c2c;
+  --border:#1c2238;--border-light:#252c42;--text:#d0d5e0;--text-dim:#7c85a8;
+  --text-muted:#505878;--accent:#f0b840;--accent-glow:rgba(240,184,64,0.12);
   --green:#4ade80;--red:#f87171;--blue:#60a5fa;--orange:#f59e0b;
-  --input-bg:#0a0d16;--input-border:#1e2232;--input-focus:#2a3050;
-  --shadow-card:0 1px 3px rgba(0,0,0,0.4);
+  --input-bg:#0d111a;--input-border:#1e2436;--input-focus:#2a3250;
+  --shadow-card:0 1px 3px rgba(0,0,0,0.5);
+  --radius-sm:6px;--radius:10px;--radius-lg:14px;
 }
 body{
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
@@ -24,30 +25,42 @@ body{
 .sidebar{
   background:var(--sidebar-bg);display:flex;flex-direction:column;
   border-right:1px solid var(--border);padding:20px 0 16px 0;position:sticky;top:0;height:100vh;
+  z-index:20;
 }
 .sidebar-logo{padding:0 20px 24px 20px;border-bottom:1px solid var(--border);margin-bottom:12px;}
-.sidebar-logo .logo-icon{font-size:26px;display:block;margin-bottom:4px;}
-.sidebar-logo h2{font-size:17px;font-weight:700;color:var(--text);letter-spacing:1px;margin:4px 0 2px 0;}
+.sidebar-logo .logo-icon{font-size:26px;display:block;margin-bottom:6px;}
+.sidebar-logo h2{font-size:17px;font-weight:700;color:var(--text);letter-spacing:2px;margin:4px 0 2px 0;}
 .sidebar-logo .ver{font-size:11px;color:var(--text-muted);}
 .sidebar-nav{flex:1;padding:4px 10px;}
 .nav-item{
   display:flex;align-items:center;gap:10px;padding:11px 14px;margin:2px 0;
-  border-radius:8px;cursor:pointer;transition:all 0.15s;font-size:14px;color:var(--text-dim);
+  border-radius:var(--radius-sm);cursor:pointer;transition:all 0.15s;font-size:14px;color:var(--text-dim);
   user-select:none;
 }
 .nav-item:hover{background:var(--card-bg);color:var(--text);}
 .nav-item.active{background:var(--accent-glow);color:var(--accent);font-weight:600;}
 .nav-item .nav-icon{font-size:16px;width:20px;text-align:center;}
+.nav-item .nav-badge{
+  margin-left:auto;background:var(--accent);color:#1a1a0a;font-size:10px;font-weight:700;
+  padding:1px 7px;border-radius:10px;
+}
 .sidebar-footer{padding:12px 20px;font-size:11px;color:var(--text-muted);border-top:1px solid var(--border);}
 
-/* ===== MAIN HEADER ===== */
+/* ===== MAIN ===== */
 .main{display:flex;flex-direction:column;overflow-x:hidden;}
 .main-header{
   display:flex;align-items:center;justify-content:space-between;
-  padding:12px 24px;background:var(--sidebar-bg);border-bottom:1px solid var(--border);
-  position:sticky;top:0;z-index:10;
+  padding:12px 28px;background:var(--sidebar-bg);border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:10;min-height:50px;
 }
+.header-left{display:flex;align-items:center;gap:16px;}
 .header-company{font-size:15px;font-weight:600;color:var(--text);}
+.header-kpi-mini{display:flex;gap:6px;}
+.hk-item{
+  font-size:11px;color:var(--text-dim);background:var(--card-bg);padding:2px 10px;
+  border-radius:4px;white-space:nowrap;
+}
+.hk-item b{color:var(--accent);}
 .header-right{display:flex;align-items:center;gap:18px;}
 .header-status{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--green);}
 .header-status.offline{color:var(--red);}
@@ -55,28 +68,40 @@ body{
 .header-status.offline .header-status-dot{animation:none;}
 @keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:0.4}}
 .header-time{font-size:13px;color:var(--text-dim);font-variant-numeric:tabular-nums;}
-.main-content{flex:1;padding:20px 24px;overflow-y:auto;}
+.main-content{flex:1;padding:20px 28px;overflow-y:auto;}
 
 /* ===== PAGES ===== */
 .page{display:none;}
 .page.active{display:block;}
 
-/* ===== WEIGH PAGE ===== */
-.weigh-grid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto auto auto;gap:16px;}
-.weigh-weight-panel{grid-column:1;grid-row:1;}
-.weigh-stats-row{grid-column:1;grid-row:2;display:flex;gap:12px;}
-.weigh-form-panel{grid-column:1;grid-row:3;}
-.weigh-side-panel{grid-column:2;grid-row:1/4;display:flex;flex-direction:column;gap:16px;}
-
-.weight-panel{
-  background:var(--card-bg);border:1px solid var(--border);
-  border-radius:12px;padding:20px 24px;transition:border-color 0.3s,box-shadow 0.3s;
+/* ===== KPI BAR (Weigh page top) ===== */
+.kpi-bar{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:18px;}
+.kpi-card{
+  background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);
+  padding:14px 16px;text-align:center;
 }
-.weight-panel.overload{border-color:var(--red);box-shadow:0 0 24px rgba(248,113,113,0.25);animation:overload-flash 0.6s infinite alternate;}
-@keyframes overload-flash{from{box-shadow:0 0 16px rgba(248,113,113,0.2)}to{box-shadow:0 0 32px rgba(248,113,113,0.45)}}
+.kpi-card.highlight{border-color:rgba(240,184,64,0.25);background:var(--accent-glow);}
+.kpi-label{font-size:11px;color:var(--text-dim);letter-spacing:0.5px;margin-bottom:6px;}
+.kpi-value{font-size:26px;font-weight:800;color:var(--accent);font-variant-numeric:tabular-nums;}
+.kpi-unit{font-size:13px;font-weight:400;color:var(--text-dim);margin-left:4px;}
 
-.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
-.card-label{font-size:13px;font-weight:600;color:var(--text-dim);letter-spacing:0.5px;text-transform:uppercase;}
+/* ===== WEIGH PAGE GRID ===== */
+.weigh-grid{display:grid;grid-template-columns:1fr 380px;gap:16px;}
+.weigh-left{display:flex;flex-direction:column;gap:16px;}
+.weigh-right{display:flex;flex-direction:column;gap:16px;}
+
+/* ===== WEIGHT PANEL ===== */
+.weight-panel{
+  background:var(--card-bg);border:2px solid var(--border);border-radius:var(--radius-lg);
+  padding:20px 28px;transition:border-color 0.3s,box-shadow 0.3s;text-align:center;
+}
+.weight-panel.overload{
+  border-color:var(--red);box-shadow:0 0 30px rgba(248,113,113,0.3);
+  animation:overload-flash 0.6s infinite alternate;
+}
+@keyframes overload-flash{from{box-shadow:0 0 16px rgba(248,113,113,0.2)}to{box-shadow:0 0 40px rgba(248,113,113,0.5)}}
+.wp-header{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:8px;}
+.wp-label{font-size:13px;font-weight:600;color:var(--text-dim);letter-spacing:1px;text-transform:uppercase;}
 .overload-alert{display:none;font-size:12px;color:var(--red);font-weight:700;animation:blink 0.5s infinite alternate;}
 .overload-alert.show{display:inline;}
 @keyframes blink{from{opacity:1}to{opacity:0.3}}
@@ -87,69 +112,105 @@ body{
   padding:18px 0 10px 0;font-family:"SF Mono","Consolas","Monaco",monospace;
 }
 .digit-column{
-  width:56px;height:92px;overflow:hidden;border-radius:6px;
-  background:#05070d;border:1px solid var(--border);position:relative;
+  width:58px;height:96px;overflow:hidden;border-radius:var(--radius-sm);
+  background:#060a12;border:1px solid var(--border);position:relative;
 }
 .digit-strip{transition:transform 0.35s cubic-bezier(0.25,0.1,0.25,1);}
 .digit-cell{
-  width:56px;height:92px;display:flex;align-items:center;justify-content:center;
-  font-size:64px;font-weight:800;color:var(--accent);line-height:1;
+  width:58px;height:96px;display:flex;align-items:center;justify-content:center;
+  font-size:68px;font-weight:800;color:var(--accent);line-height:1;
 }
 .decimal-dot{
-  width:20px;text-align:center;font-size:56px;font-weight:800;color:var(--accent);
+  width:20px;text-align:center;font-size:58px;font-weight:800;color:var(--accent);
   padding-bottom:6px;line-height:1;
 }
 
-/* Stability */
-.stability-row{display:flex;align-items:center;justify-content:space-between;margin:8px 0 12px 0;}
+/* Stability Row */
+.stability-row{
+  display:flex;align-items:center;justify-content:space-between;
+  margin:6px 0 14px 0;padding:0 20px;
+}
 .stability-badge{
   display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;
-  padding:4px 10px;border-radius:20px;border:1px solid var(--border);transition:all 0.3s;
+  padding:5px 12px;border-radius:20px;border:1px solid var(--border);transition:all 0.3s;
 }
-.stability-badge.stable{color:var(--green);border-color:rgba(74,222,128,0.25);background:rgba(74,222,128,0.06);}
-.stability-badge.unstable{color:var(--orange);border-color:rgba(245,158,11,0.25);background:rgba(245,158,11,0.06);}
+.stability-badge.stable{color:var(--green);border-color:rgba(74,222,128,0.3);background:rgba(74,222,128,0.06);}
+.stability-badge.unstable{color:var(--orange);border-color:rgba(245,158,11,0.3);background:rgba(245,158,11,0.06);}
 .stability-dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
 .sparkline-canvas{border-radius:4px;}
 
-/* Weight Summary */
-.weight-summary{display:flex;gap:12px;margin-top:8px;}
+/* Weight Summary (gross/tare/net) */
+.weight-summary{display:flex;gap:12px;padding:0 10px;}
 .weight-item{
-  flex:1;background:rgba(255,255,255,0.02);border:1px solid var(--border);
-  border-radius:8px;padding:10px 14px;text-align:center;
+  flex:1;background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:12px 14px;text-align:center;
 }
 .weight-item .label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;}
-.weight-item .value{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;}
+.weight-item .value{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;}
 .weight-item .value.gross{color:var(--blue);}
 .weight-item .value.tare{color:var(--red);}
 .weight-item .value.net{color:var(--green);}
 
-/* Mini Stats */
-.mini-stat{
-  flex:1;background:var(--card-bg);border:1px solid var(--border);
-  border-radius:10px;padding:14px 16px;text-align:center;
+/* ===== FORM PANEL ===== */
+.form-panel{
+  background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-lg);
+  padding:20px 24px;
 }
-.mini-stat.accent{border-color:rgba(240,184,64,0.2);background:var(--accent-glow);}
-.ms-val{font-size:26px;font-weight:800;color:var(--accent);font-variant-numeric:tabular-nums;}
-.ms-lbl{font-size:11px;color:var(--text-dim);margin-top:4px;}
-
-/* Cards & Forms */
-.card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:20px 24px;}
-.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;margin-bottom:16px;}
-.form-group{display:flex;flex-direction:column;gap:4px;}
+.form-section{
+  background:var(--surface);border:1px solid var(--border-light);border-radius:var(--radius);
+  padding:16px 18px;margin-bottom:14px;
+}
+.form-section-title{
+  font-size:12px;font-weight:600;color:var(--text-dim);letter-spacing:1px;
+  margin-bottom:12px;display:flex;align-items:center;gap:6px;
+}
+.form-section-title::before{content:'';width:3px;height:14px;background:var(--accent);border-radius:2px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;}
+.form-row.triple{grid-template-columns:1fr 1fr 1fr;}
+.form-group{display:flex;flex-direction:column;gap:4px;position:relative;}
 .form-group label{font-size:12px;font-weight:500;color:var(--text-dim);}
 .form-group input,.form-group select{
-  background:var(--input-bg);border:1px solid var(--input-border);border-radius:6px;
-  padding:9px 12px;color:var(--text);font-size:14px;outline:none;transition:border-color 0.2s;
+  background:var(--input-bg);border:1px solid var(--input-border);border-radius:var(--radius-sm);
+  padding:9px 12px;color:var(--text);font-size:13px;outline:none;transition:border-color 0.2s;
   font-family:inherit;
 }
 .form-group input:focus,.form-group select:focus{border-color:var(--input-focus);}
 .form-group input::placeholder{color:var(--text-muted);}
 .form-group select option{background:var(--card-bg);color:var(--text);}
 
-/* Buttons */
+/* Vehicle match dropdown */
+.vehicle-suggestions{
+  display:none;position:absolute;top:72px;left:0;right:0;z-index:30;
+  background:var(--card-bg);border:1px solid var(--border-light);border-radius:var(--radius-sm);
+  max-height:160px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,0.6);
+}
+.vehicle-suggestions.show{display:block;}
+.vehicle-suggestions .vs-item{
+  padding:9px 14px;cursor:pointer;font-size:12px;border-bottom:1px solid rgba(255,255,255,0.03);
+  display:flex;justify-content:space-between;align-items:center;
+}
+.vehicle-suggestions .vs-item:hover{background:var(--surface);color:var(--accent);}
+.vehicle-suggestions .vs-item .vs-driver{color:var(--text-dim);font-size:11px;}
+
+/* Fee estimate */
+.fee-bar{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  margin-top:14px;padding:10px 16px;background:var(--surface);border-radius:var(--radius-sm);
+  border:1px solid var(--border-light);
+}
+.fee-bar .fee-label{font-size:12px;color:var(--text-dim);}
+.fee-bar .fee-value{font-size:18px;font-weight:700;color:var(--green);font-variant-numeric:tabular-nums;}
+.fee-bar .fee-hint{font-size:11px;color:var(--text-muted);}
+
+/* Mode indicator & Buttons */
+.mode-row{display:flex;align-items:center;justify-content:space-between;margin-top:14px;}
+.mode-indicator{
+  font-size:12px;font-weight:500;padding:5px 14px;border-radius:20px;border:1px solid;
+  display:inline-flex;align-items:center;gap:5px;
+}
 .btn-row{display:flex;gap:8px;flex-wrap:wrap;}
 .btn{
-  padding:9px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;
+  padding:9px 18px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;
   border:1px solid transparent;transition:all 0.15s;font-family:inherit;
   display:inline-flex;align-items:center;gap:5px;
 }
@@ -157,39 +218,35 @@ body{
 .btn-primary{background:var(--accent);color:#1a1a0a;border-color:var(--accent);}
 .btn-primary:hover{background:#f5c85a;box-shadow:0 0 16px var(--accent-glow);}
 .btn-outline{background:transparent;color:var(--text-dim);border-color:var(--border);}
-.btn-outline:hover{background:var(--card-bg-hover);color:var(--text);border-color:var(--border-light);}
-.btn-outline:disabled{opacity:0.4;cursor:not-allowed;}
-.btn-danger{background:rgba(248,113,113,0.15);color:var(--red);border-color:rgba(248,113,113,0.25);}
-.btn-danger:hover{background:rgba(248,113,113,0.25);}
+.btn-outline:hover{background:var(--surface);color:var(--text);border-color:var(--border-light);}
+.btn-outline:disabled{opacity:0.35;cursor:not-allowed;}
+.btn-danger{background:rgba(248,113,113,0.12);color:var(--red);border-color:rgba(248,113,113,0.25);}
+.btn-danger:hover{background:rgba(248,113,113,0.22);}
 .btn-sm{padding:6px 14px;font-size:12px;}
 
-.mode-indicator{font-size:12px;font-weight:500;padding:4px 12px;border-radius:20px;border:1px solid;}
-
-/* Camera */
-.camera-card .card-label{margin-bottom:10px;}
+/* ===== RIGHT SIDE: Camera + Records ===== */
 .camera-view{
-  position:relative;width:100%;aspect-ratio:16/10;background:#000;
-  border-radius:8px;overflow:hidden;border:1px solid var(--border);
+  position:relative;width:100%;aspect-ratio:4/3;background:#000;
+  border-radius:var(--radius);overflow:hidden;border:1px solid var(--border);
 }
 .camera-placeholder{
   position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
-  justify-content:center;color:var(--text-muted);gap:8px;
+  justify-content:center;color:var(--text-muted);gap:8px;font-size:13px;
 }
-.camera-placeholder .icon{font-size:32px;}
-.camera-placeholder{font-size:13px;}
+.camera-placeholder .icon{font-size:36px;opacity:0.5;}
 .camera-view video{width:100%;height:100%;object-fit:cover;}
 .camera-crosshair{
-  position:absolute;inset:15%;border:1px dashed rgba(255,255,255,0.2);
+  position:absolute;inset:15%;border:1px dashed rgba(255,255,255,0.15);
   pointer-events:none;
 }
 .camera-crosshair::before,.camera-crosshair::after{
-  content:'';position:absolute;background:rgba(255,255,255,0.15);
+  content:'';position:absolute;background:rgba(255,255,255,0.1);
 }
 .camera-crosshair::before{top:50%;left:0;right:0;height:1px;}
 .camera-crosshair::after{left:50%;top:0;bottom:0;width:1px;}
 .camera-label{
-  position:absolute;bottom:6px;right:10px;font-size:11px;color:rgba(255,255,255,0.5);
-  font-family:monospace;background:rgba(0,0,0,0.5);padding:2px 6px;border-radius:3px;
+  position:absolute;bottom:6px;right:10px;font-size:11px;color:rgba(255,255,255,0.45);
+  font-family:monospace;background:rgba(0,0,0,0.6);padding:2px 6px;border-radius:3px;
 }
 
 /* Mini Table */
@@ -201,14 +258,14 @@ body{
 }
 .mini-table tbody td{padding:7px 10px;border-bottom:1px solid rgba(255,255,255,0.03);}
 
-/* Records Page */
+/* ===== RECORDS PAGE ===== */
 .records-header{display:flex;gap:12px;align-items:center;margin-bottom:16px;flex-wrap:wrap;}
 .records-search,.records-date{
-  background:var(--input-bg);border:1px solid var(--input-border);border-radius:6px;
+  background:var(--input-bg);border:1px solid var(--input-border);border-radius:var(--radius-sm);
   padding:8px 12px;color:var(--text);font-size:13px;outline:none;font-family:inherit;
 }
 .records-search:focus,.records-date:focus{border-color:var(--input-focus);}
-.records-search{width:240px;}
+.records-search{width:260px;}
 .records-search::placeholder{color:var(--text-muted);}
 .records-count{font-size:12px;color:var(--text-dim);white-space:nowrap;}
 
@@ -219,41 +276,31 @@ body{
   white-space:nowrap;font-size:11px;
 }
 .records-table tbody td{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,0.03);}
-.records-table tbody tr:hover{background:var(--card-bg-hover);}
+.records-table tbody tr:hover{background:var(--surface);}
 
 .pagination{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:16px;}
 .page-btn{
-  background:var(--card-bg);border:1px solid var(--border);border-radius:6px;
+  background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-sm);
   padding:7px 16px;color:var(--text-dim);font-size:12px;cursor:pointer;font-family:inherit;
   transition:all 0.15s;
 }
-.page-btn:hover:not(:disabled){background:var(--card-bg-hover);color:var(--text);}
+.page-btn:hover:not(:disabled){background:var(--surface);color:var(--text);}
 .page-btn:disabled{opacity:0.3;cursor:not-allowed;}
 .page-info{font-size:12px;color:var(--text-dim);}
 
-/* Stats Page */
-.kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px;}
-.kpi-card{
-  background:var(--card-bg);border:1px solid var(--border);border-radius:10px;
-  padding:16px 18px;text-align:center;
-}
-.kpi-card.accent{border-color:rgba(240,184,64,0.2);background:var(--accent-glow);}
-.kpi-label{font-size:11px;color:var(--text-dim);margin-bottom:6px;letter-spacing:0.5px;}
-.kpi-value{font-size:28px;font-weight:800;color:var(--accent);font-variant-numeric:tabular-nums;}
-.kpi-unit{font-size:13px;font-weight:400;color:var(--text-dim);margin-left:4px;}
-
-.chart-card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:16px;}
+/* ===== STATS PAGE ===== */
+.chart-card{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px 24px;margin-bottom:16px;}
 .chart-title{font-size:13px;font-weight:600;color:var(--text-dim);margin-bottom:16px;}
 .bar-chart{display:flex;align-items:flex-end;gap:16px;height:200px;padding:0 4px;}
 .bar-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;}
 .bar-fill{
-  width:100%;max-width:36px;background:linear-gradient(180deg,var(--accent),rgba(240,184,64,0.3));
+  width:100%;max-width:40px;background:linear-gradient(180deg,var(--accent),rgba(240,184,64,0.25));
   border-radius:4px 4px 0 0;min-height:2px;transition:height 0.4s;
 }
 .bar-value{font-size:11px;color:var(--text-dim);margin-bottom:4px;font-weight:600;}
 .bar-label{font-size:10px;color:var(--text-muted);margin-top:6px;}
 
-.top-plates-card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:20px 24px;}
+.top-plates-card{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px 24px;}
 .rank-num{
   display:inline-flex;align-items:center;justify-content:center;
   width:24px;height:24px;border-radius:50%;font-size:12px;font-weight:700;
@@ -267,37 +314,42 @@ body{
 .empty-icon{font-size:36px;opacity:0.5;}
 .empty-text{font-size:13px;}
 
-/* Settings */
+/* ===== SETTINGS PAGE ===== */
 .settings-section{
   background:var(--card-bg);border:1px solid var(--border);
-  border-radius:12px;padding:20px 24px;margin-bottom:16px;
+  border-radius:var(--radius-lg);padding:20px 24px;margin-bottom:16px;
 }
 .settings-section h3{font-size:14px;font-weight:600;color:var(--text);margin-bottom:14px;}
 .settings-row{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;}
 .tag-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
 .tag{
-  display:inline-flex;align-items:center;gap:4px;font-size:12px;
-  background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:6px;
-  padding:4px 8px;color:var(--text-dim);
+  display:inline-flex;align-items:center;gap:5px;font-size:12px;
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);
+  padding:5px 10px;color:var(--text-dim);
 }
 .tag-spec{color:var(--text-muted);font-size:10px;}
-.tag-remove{cursor:pointer;color:var(--text-muted);font-size:14px;margin-left:2px;line-height:1;}
+.tag-remove{cursor:pointer;color:var(--text-muted);font-size:14px;line-height:1;}
 .tag-remove:hover{color:var(--red);}
+.vehicle-tag-meta{font-size:10px;color:var(--text-muted);margin-left:4px;}
 
-/* Modal */
+/* ===== CARD (generic) ===== */
+.card{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px;}
+.card-label{font-size:12px;font-weight:600;color:var(--text-dim);letter-spacing:0.5px;margin-bottom:10px;}
+
+/* ===== MODAL ===== */
 .modal-overlay{
-  display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);
   z-index:100;align-items:center;justify-content:center;
 }
 .modal-overlay.show{display:flex;}
 .modal{
-  background:#fff;color:#1a1a1a;border-radius:12px;padding:32px;max-width:500px;width:90%;
+  background:#fff;color:#1a1a1a;border-radius:12px;padding:32px;max-width:520px;width:90%;
   max-height:85vh;overflow-y:auto;position:relative;
 }
 .modal h2{text-align:center;font-size:18px;letter-spacing:6px;margin-bottom:20px;color:#222;}
 .modal table{width:100%;border-collapse:collapse;}
 .modal table td{padding:6px 8px;border-bottom:1px solid #e5e5e5;font-size:13px;}
-.modal table td:first-child{color:#666;width:90px;font-size:12px;}
+.modal table td:first-child{color:#666;width:100px;font-size:12px;}
 .modal-divider{border-top:2px solid #222;margin:8px 0;}
 .modal-seal{display:flex;justify-content:flex-end;margin-top:16px;}
 .modal-seal-circle{
@@ -308,24 +360,24 @@ body{
 .modal-footer{text-align:center;font-size:11px;color:#999;margin-top:12px;}
 .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;}
 
-/* Toast */
+/* ===== TOAST ===== */
 .toast{
   position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);
-  padding:10px 24px;border-radius:8px;font-size:14px;font-weight:500;z-index:200;
+  padding:10px 24px;border-radius:var(--radius-sm);font-size:14px;font-weight:500;z-index:200;
   transition:transform 0.3s;pointer-events:none;
 }
 .toast.success{background:#0d2818;color:var(--green);border:1px solid rgba(74,222,128,0.3);}
 .toast.error{background:#2d1010;color:var(--red);border:1px solid rgba(248,113,113,0.3);}
 .toast.show{transform:translateX(-50%) translateY(0);}
 
-/* Shortcuts */
+/* ===== SHORTCUTS ===== */
 .shortcuts-overlay{
   display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);
   z-index:150;align-items:center;justify-content:center;
 }
 .shortcuts-overlay.show{display:flex;}
 .shortcuts-panel{
-  background:var(--card-bg);border:1px solid var(--border);border-radius:14px;
+  background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-lg);
   padding:24px 28px;min-width:320px;
 }
 .shortcuts-panel h3{font-size:15px;font-weight:600;margin-bottom:16px;color:var(--accent);}
@@ -336,12 +388,12 @@ body{
 }
 .shortcut-hint{margin-top:14px;font-size:11px;color:var(--text-muted);text-align:center;}
 
-/* Scrollbar */
+/* ===== SCROLLBAR ===== */
 ::-webkit-scrollbar{width:5px;height:5px;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:var(--border-light);border-radius:3px;}
 
-/* Print */
+/* ===== PRINT ===== */
 @media print{
   body{background:#fff;color:#000;display:block;}
   .sidebar,.main-header,.toast,.shortcuts-overlay{display:none!important;}
@@ -351,112 +403,210 @@ body{
 </style>
 </head>
 <body>
+<!-- ===== SIDEBAR ===== -->
 <aside class="sidebar">
-  <div class="sidebar-logo"><span class="logo-icon">⚖</span><h2>地磅称重</h2><div class="ver">v2.2 · 联网版</div></div>
+  <div class="sidebar-logo"><span class="logo-icon">⚖</span><h2>地磅称重</h2><div class="ver">v2.3 · 联网版</div></div>
   <nav class="sidebar-nav">
-    <div class="nav-item active" data-page="weigh"><span class="nav-icon">⚖</span> 称重台</div>
+    <div class="nav-item active" data-page="weigh"><span class="nav-icon">⚖</span> 称重台<span class="nav-badge" id="navTodayBadge" style="display:none">0</span></div>
     <div class="nav-item" data-page="records"><span class="nav-icon">📋</span> 过磅记录</div>
-    <div class="nav-item" data-page="stats"><span class="nav-icon">📈</span> 数据统计</div>
+    <div class="nav-item" data-page="stats"><span class="nav-icon">📱</span> 数据统计</div>
     <div class="nav-item" data-page="settings"><span class="nav-icon">⚙</span> 系统设置</div>
   </nav>
   <div class="sidebar-footer">&copy; 2025 Weighbridge API Demo</div>
 </aside>
+
+<!-- ===== MAIN ===== -->
 <main class="main">
   <header class="main-header">
-    <span class="header-company" id="headerCompany">XX地磅站</span>
+    <div class="header-left">
+      <span class="header-company" id="headerCompany">XX地磅站</span>
+      <div class="header-kpi-mini">
+        <span class="hk-item">今日 <b id="hkTodayCount">0</b> 车</span>
+        <span class="hk-item">净重 <b id="hkTodayNet">0</b>t</span>
+      </div>
+    </div>
     <div class="header-right">
       <div class="header-status" id="headerStatus"><span class="header-status-dot"></span><span id="headerStatusText">传感器在线</span></div>
       <span class="header-time" id="headerTime"></span>
     </div>
   </header>
+
   <div class="main-content">
+    <!-- ===== WEIGH PAGE ===== -->
     <div class="page active" id="pageWeigh">
+      <div class="kpi-bar" id="weighKpiBar">
+        <div class="kpi-card highlight"><div class="kpi-label">今日车次</div><div class="kpi-value" id="wkTodayCount">0<span class="kpi-unit">辆</span></div></div>
+        <div class="kpi-card"><div class="kpi-label">今日净重总量</div><div class="kpi-value" style="color:#4ade80;" id="wkTodayNet">0<span class="kpi-unit">t</span></div></div>
+        <div class="kpi-card"><div class="kpi-label">今日平均净重</div><div class="kpi-value" style="color:#60a5fa;" id="wkTodayAvg">0<span class="kpi-unit">kg</span></div></div>
+        <div class="kpi-card highlight"><div class="kpi-label">最高单次净重</div><div class="kpi-value" id="wkTodayMax">0<span class="kpi-unit">kg</span></div></div>
+        <div class="kpi-card"><div class="kpi-label">历史总记录</div><div class="kpi-value" id="wkTotalRecords">0<span class="kpi-unit">条</span></div></div>
+      </div>
+
       <div class="weigh-grid">
-        <div class="weigh-weight-panel">
+        <div class="weigh-left">
+          <!-- Weight Display -->
           <div class="weight-panel" id="weightPanel">
-            <div class="card-header"><span class="card-label">📍 实时重量</span><span class="overload-alert" id="overloadAlert">⚠ 超载警告！重量超出安全范围</span></div>
+            <div class="wp-header"><span class="wp-label">⚡ 实时重量</span><span class="overload-alert" id="overloadAlert">⚠ 超载警告！重量超出安全范围</span></div>
             <div class="weight-display" id="weightDisplay"></div>
-            <div class="stability-row"><span class="stability-badge stable" id="stabilityBadge"><span class="stability-dot"></span> 统计中...</span><canvas class="sparkline-canvas" id="sparklineCanvas" width="220" height="48"></canvas></div>
+            <div class="stability-row">
+              <span class="stability-badge stable" id="stabilityBadge"><span class="stability-dot"></span> 统计中...</span>
+              <canvas class="sparkline-canvas" id="sparklineCanvas" width="240" height="44"></canvas>
+            </div>
             <div class="weight-summary">
-              <div class="weight-item"><div class="label">毛重</div><div class="value gross" id="grossDisplay">--</div></div>
-              <div class="weight-item"><div class="label">皮重</div><div class="value tare" id="tareDisplay">--</div></div>
-              <div class="weight-item"><div class="label">净重</div><div class="value net" id="netDisplay">--</div></div>
+              <div class="weight-item"><div class="label">毛重 Gross</div><div class="value gross" id="grossDisplay">--</div></div>
+              <div class="weight-item"><div class="label">皮重 Tare</div><div class="value tare" id="tareDisplay">--</div></div>
+              <div class="weight-item"><div class="label">净重 Net</div><div class="value net" id="netDisplay">--</div></div>
             </div>
           </div>
-        </div>
-        <div class="weigh-stats-row">
-          <div class="mini-stat accent"><div class="ms-val" id="todayCount">0</div><div class="ms-lbl">今日车次</div></div>
-          <div class="mini-stat"><div class="ms-val" style="color:#4ade80;" id="todayNet">0</div><div class="ms-lbl">今日净重总量 kg</div></div>
-          <div class="mini-stat"><div class="ms-val" style="color:#60a5fa;" id="totalRecords">0</div><div class="ms-lbl">历史总记录</div></div>
-        </div>
-        <div class="weigh-form-panel">
-          <div class="card">
-            <div class="card-header"><span class="card-label">📝 过磅信息</span></div>
-            <div class="form-grid">
-              <div class="form-group"><label>🚗 车牌号码</label><input type="text" id="plateInput" placeholder="例：京A12345" maxlength="10" autocomplete="off"></div>
-              <div class="form-group"><label>👁 司机姓名</label><input type="text" id="driverInput" placeholder="司机姓名" maxlength="20"></div>
-              <div class="form-group"><label>🏚 收货单位</label><input type="text" id="customerInput" placeholder="客户/收货单位" maxlength="30"></div>
-              <div class="form-group"><label>📦 货物品名</label><select id="cargoSelect"><option value="">-- 选择货物 --</option></select></div>
-              <div class="form-group"><label>📹 规格型号</label><input type="text" id="specInput" placeholder="规格/型号" maxlength="20"></div>
-              <div class="form-group"><label>🏬 供应商</label><select id="supplierSelect"><option value="">-- 选择供应商 --</option></select></div>
+
+          <!-- Form -->
+          <div class="form-panel">
+            <!-- Vehicle Info -->
+            <div class="form-section">
+              <div class="form-section-title">车辆信息</div>
+              <div class="form-row">
+                <div class="form-group" style="position:relative;">
+                  <label>🚗 车牌号码</label>
+                  <input type="text" id="plateInput" placeholder="例：京A12345" maxlength="10" autocomplete="off">
+                  <div class="vehicle-suggestions" id="vehicleSuggestions"></div>
+                </div>
+                <div class="form-group">
+                  <label>👤 司机姓名</label>
+                  <input type="text" id="driverInput" placeholder="司机姓名" maxlength="20">
+                </div>
+              </div>
             </div>
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-              <span id="modeBadge" class="mode-indicator" style="background:#11182a;color:#60a5fa;border:1px solid #1a2a4a;">📗 一次称重模式</span>
+
+            <!-- Cargo Info -->
+            <div class="form-section">
+              <div class="form-section-title">货物信息</div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>📦 货物品名</label>
+                  <select id="cargoSelect"><option value="">-- 选择货物 --</option></select>
+                </div>
+                <div class="form-group">
+                  <label>📴 规格型号</label>
+                  <input type="text" id="specInput" placeholder="规格/型号" maxlength="20">
+                </div>
+                <div class="form-group">
+                  <label>🏫 供应商</label>
+                  <select id="supplierSelect"><option value="">-- 选择供应商 --</option></select>
+                </div>
+                <div class="form-group">
+                  <label>🏗 收货单位</label>
+                  <input type="text" id="customerInput" placeholder="客户/收货单位" maxlength="30">
+                </div>
+              </div>
+            </div>
+
+            <!-- Action Bar -->
+            <div class="mode-row">
+              <span id="modeBadge" class="mode-indicator" style="background:#0a1a20;color:#60a5fa;border:1px solid #1a2a4a;">📗 一次称重模式</span>
               <span style="font-size:11px;color:var(--text-muted);">按 <b style="color:var(--accent);">?</b> 查看快捷键</span>
             </div>
             <div class="btn-row">
-              <button class="btn btn-primary" id="btnRecord">📝 记录称重</button>
+              <button class="btn btn-primary" id="btnRecord" onclick="handleRecord()">📝 记录称重</button>
               <button class="btn btn-outline" id="btnGross" onclick="captureGross()">⚖ 毛重</button>
               <button class="btn btn-outline" id="btnTare" onclick="captureTare()" disabled>⚖ 皮重</button>
-              <button class="btn btn-outline" id="btnTareManual" onclick="manualTare()">🔡 去皮</button>
-              <button class="btn btn-outline" id="btnClear" onclick="clearWeighState()">↩ 清零</button>
+              <button class="btn btn-outline" id="btnTareManual" onclick="manualTare()">🔧 去皮</button>
+              <button class="btn btn-outline" id="btnClear" onclick="clearWeighState()">↺ 清零</button>
+            </div>
+            <div class="fee-bar" id="feeBar">
+              <span class="fee-label">💰 预估费用（按净重）</span>
+              <span class="fee-value" id="feeAmount">¥0.00</span>
+              <span class="fee-hint" id="feeHint">单价 0 元/吨</span>
             </div>
           </div>
         </div>
-        <div class="weigh-side-panel">
-          <div class="card camera-card">
-            <div class="card-label">📲 实时画面</div>
+
+        <div class="weigh-right">
+          <!-- Camera -->
+          <div class="card" style="padding:14px 16px;">
+            <div class="card-label">📷 实时画面</div>
             <div class="camera-view" id="cameraView">
-              <div class="camera-placeholder" id="cameraPlaceholder"><span class="icon">📲</span>等待摄像头...</div>
+              <div class="camera-placeholder" id="cameraPlaceholder"><span class="icon">📷</span>等待摄像头...</div>
               <video id="cameraVideo" style="display:none" autoplay playsinline></video>
               <div class="camera-crosshair"></div><div class="camera-label" id="cameraTimestamp"></div>
             </div>
           </div>
+
+          <!-- Mini Records -->
           <div class="card" style="flex:1;overflow:hidden;display:flex;flex-direction:column;">
             <div class="card-label">📋 最近记录</div>
-            <div style="overflow-y:auto;flex:1;"><table class="mini-table"><thead><tr><th>时间</th><th>车牌</th><th>净重</th></tr></thead><tbody id="miniRecordsBody"><tr><td colspan="3" style="color:var(--text-dim);text-align:center;padding:20px;">暂无记录</td></tr></tbody></table></div>
+            <div style="overflow-y:auto;flex:1;">
+              <table class="mini-table">
+                <thead><tr><th>时间</th><th>车牌</th><th>货物</th><th>净重</th></tr></thead>
+                <tbody id="miniRecordsBody"><tr><td colspan="4" style="color:var(--text-dim);text-align:center;padding:20px;">暂无记录</td></tr></tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- ===== RECORDS PAGE ===== -->
     <div class="page" id="pageRecords">
       <div class="card">
         <div class="records-header">
           <input type="text" class="records-search" id="recordsSearch" placeholder="搜索车牌号/货物/客户..." oninput="renderRecordsTable()">
           <input type="date" class="records-date" id="recordsDate" onchange="renderRecordsTable()" title="按日期筛选">
-          <div style="display:flex;gap:10px;align-items:center;"><span class="records-count" id="recordsCount">共 0 条记录</span><button class="btn btn-outline btn-sm" onclick="exportCSV()">📤 导出CSV</button></div>
+          <span class="records-count" id="recordsCount">共 0 条记录</span>
+          <button class="btn btn-outline btn-sm" onclick="exportCSV()">📛 导出CSV</button>
         </div>
-        <div style="overflow-x:auto;"><table class="records-table"><thead><tr><th>#</th><th>车牌号</th><th>司机</th><th>收货单位</th><th>货物</th><th>规格</th><th>供应商</th><th>毛重(kg)</th><th>皮重(kg)</th><th>净重(kg)</th><th>模式</th><th>时间</th><th>操作</th></tr></thead><tbody id="recordsPageBody"></tbody></table></div>
+        <div style="overflow-x:auto;">
+          <table class="records-table">
+            <thead><tr><th>#</th><th>车牌号</th><th>司机</th><th>收货单位</th><th>货物</th><th>规格</th><th>供应商</th><th>毛重(kg)</th><th>皮重(kg)</th><th>净重(kg)</th><th>模式</th><th>时间</th><th>操作</th></tr></thead>
+            <tbody id="recordsPageBody"></tbody>
+          </table>
+        </div>
         <div class="pagination" id="pagination"></div>
       </div>
     </div>
+
+    <!-- ===== STATS PAGE ===== -->
     <div class="page" id="pageStats">
-      <div class="kpi-grid" id="kpiGrid"></div>
-      <div class="chart-card"><div class="chart-title">📅 近7天过磅车次</div><div class="bar-chart" id="barChart"></div></div>
-      <div class="top-plates-card" style="margin-top:16px;" id="topPlatesCard"><div class="chart-title">🏆 高频车辆 TOP 5</div><table class="mini-table"><thead><tr><th>排名</th><th>车牌号</th><th>过磅次数</th><th>总净重(kg)</th></tr></thead><tbody id="topPlatesBody"><tr><td colspan="4"><div class="empty-state"><span class="empty-icon">📦</span><span class="empty-text">暂无数据</span></div></td></tr></tbody></table></div>
+      <div class="kpi-bar" id="kpiGrid" style="margin-bottom:16px;"></div>
+      <div class="chart-card"><div class="chart-title">📮 近7天过磅车次</div><div class="bar-chart" id="barChart"></div></div>
+      <div class="top-plates-card" style="margin-top:16px;" id="topPlatesCard">
+        <div class="chart-title">🏆 高频车辆 TOP 5</div>
+        <table class="mini-table"><thead><tr><th>排名</th><th>车牌号</th><th>过磅次数</th></tr></thead><tbody id="topPlatesBody"><tr><td colspan="3"><div class="empty-state"><span class="empty-icon">📮</span><span class="empty-text">暂无数据</span></div></td></tr></tbody></table>
+      </div>
     </div>
+
+    <!-- ===== SETTINGS PAGE ===== -->
     <div class="page" id="pageSettings">
-      <div class="settings-section"><h3>🏚 公司信息</h3><div class="settings-row"><div class="form-group"><label>公司名称</label><input type="text" id="settingsCompanyName" placeholder="输入公司名称" maxlength="30"></div><div class="form-group"><label>地磅编号</label><input type="text" id="settingsScaleId" placeholder="如：SC-001" maxlength="20"></div><button class="btn btn-primary btn-sm" onclick="saveCompanySettings()">💾 保存</button></div></div>
-      <div class="settings-section"><h3>🚨 超载警告设置</h3><div class="settings-row"><div class="form-group"><label>超载阈值 (kg)</label><input type="number" id="settingsOverloadThreshold" placeholder="49000" min="1000" max="50000" step="100"></div><button class="btn btn-primary btn-sm" onclick="saveOverloadThreshold()">保存</button></div></div>
-      <div class="settings-section"><h3>📦 货物管理 <span style="font-size:11px;color:var(--text-muted);font-weight:400;">品名 + 规格</span></h3><div class="settings-row"><div class="form-group"><input type="text" id="newCargoName" placeholder="货物品名" maxlength="20"></div><div class="form-group"><input type="text" id="newCargoSpec" placeholder="规格/型号（可选）" maxlength="20"></div><button class="btn btn-primary btn-sm" onclick="addCargo()">+ 添加</button></div><div class="tag-list" id="cargoTags"></div></div>
-      <div class="settings-section"><h3>🏬 供应商管理</h3><div class="settings-row"><div class="form-group"><input type="text" id="newSupplierInput" placeholder="新增供应商名称" maxlength="30"></div><button class="btn btn-primary btn-sm" onclick="addSupplier()">+ 添加</button></div><div class="tag-list" id="supplierTags"></div></div>
-      <div class="settings-section"><h3>🏚 收货单位管理</h3><div class="settings-row"><div class="form-group"><input type="text" id="newCustomerInput" placeholder="新增收货单位名称" maxlength="30"></div><button class="btn btn-primary btn-sm" onclick="addCustomer()">+ 添加</button></div><div class="tag-list" id="customerTags"></div></div>
+      <div class="settings-section"><h3>🏢 公司信息</h3><div class="settings-row"><div class="form-group"><label>公司名称</label><input type="text" id="settingsCompanyName" placeholder="输入公司名称" maxlength="30"></div><div class="form-group"><label>地磅编号</label><input type="text" id="settingsScaleId" placeholder="如：SC-001" maxlength="20"></div><button class="btn btn-primary btn-sm" onclick="saveCompanySettings()">💾 保存</button></div></div>
+
+      <div class="settings-section"><h3>💰 收费单价设置</h3><div class="settings-row"><div class="form-group"><label>每吨单价（元）</label><input type="number" id="settingsUnitPrice" placeholder="0.00" min="0" step="0.1"></div><button class="btn btn-primary btn-sm" onclick="saveUnitPrice()">保存单价</button><span style="font-size:12px;color:var(--text-muted);">设0则隐藏费用估算</span></div></div>
+
+      <div class="settings-section"><h3>⚠ 超载警告设置</h3><div class="settings-row"><div class="form-group"><label>超载阈值 (kg)</label><input type="number" id="settingsOverloadThreshold" placeholder="49000" min="1000" max="50000" step="100"></div><button class="btn btn-primary btn-sm" onclick="saveOverloadThreshold()">保存</button></div></div>
+
+      <!-- Vehicle Management -->
+      <div class="settings-section"><h3>🚛 车辆档案管理</h3><div class="settings-row" style="margin-bottom:12px;">
+        <div class="form-group"><input type="text" id="newVehiclePlate" placeholder="车牌号" maxlength="10" style="width:110px;"></div>
+        <div class="form-group"><input type="text" id="newVehicleDriver" placeholder="司机姓名" maxlength="20" style="width:100px;"></div>
+        <div class="form-group"><input type="text" id="newVehicleCargo" placeholder="常载货物" maxlength="20" style="width:100px;"></div>
+        <div class="form-group"><input type="text" id="newVehicleSupplier" placeholder="常用供应商" maxlength="20" style="width:110px;"></div>
+        <button class="btn btn-primary btn-sm" onclick="addVehicle()">+ 添加车辆</button>
+      </div>
+      <div class="tag-list" id="vehicleTags"></div></div>
+
+      <div class="settings-section"><h3>📦 货物品名管理 <span style="font-size:11px;color:var(--text-muted);font-weight:400;">品名 + 规格</span></h3><div class="settings-row"><div class="form-group"><input type="text" id="newCargoName" placeholder="货物品名" maxlength="20"></div><div class="form-group"><input type="text" id="newCargoSpec" placeholder="规格/型号（可选）" maxlength="20"></div><button class="btn btn-primary btn-sm" onclick="addCargo()">+ 添加</button></div><div class="tag-list" id="cargoTags"></div></div>
+
+      <div class="settings-section"><h3>🏫 供应商管理</h3><div class="settings-row"><div class="form-group"><input type="text" id="newSupplierInput" placeholder="新增供应商名称" maxlength="30"></div><button class="btn btn-primary btn-sm" onclick="addSupplier()">+ 添加</button></div><div class="tag-list" id="supplierTags"></div></div>
+
+      <div class="settings-section"><h3>🏗 收货单位管理</h3><div class="settings-row"><div class="form-group"><input type="text" id="newCustomerInput" placeholder="新增收货单位名称" maxlength="30"></div><button class="btn btn-primary btn-sm" onclick="addCustomer()">+ 添加</button></div><div class="tag-list" id="customerTags"></div></div>
+
       <div class="settings-section"><h3>⚠ 危险操作</h3><button class="btn btn-danger btn-sm" id="btnClearData" onclick="clearAllData()">🗑 清空所有数据</button><span style="font-size:12px;color:var(--text-dim);margin-left:10px;">此操作不可恢复</span></div>
     </div>
   </div>
 </main>
+
+<!-- ===== OVERLAYS ===== -->
 <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)"><div class="modal" id="modalContent" onclick="event.stopPropagation()"></div></div>
 <div class="toast" id="toast"></div>
 <div class="shortcuts-overlay" id="shortcutsOverlay" onclick="toggleShortcuts()"><div class="shortcuts-panel" onclick="event.stopPropagation()"><h3>⌨ 键盘快捷键</h3><div class="shortcut-row"><span>锁定毛重</span><span class="kbd">G</span></div><div class="shortcut-row"><span>锁定皮重</span><span class="kbd">T</span></div><div class="shortcut-row"><span>记录称重</span><span class="kbd">R</span></div><div class="shortcut-row"><span>清零重置</span><span class="kbd">C</span></div><div class="shortcut-row"><span>显示帮助</span><span class="kbd">?</span></div><div class="shortcut-hint">按 ESC 或点击背景关闭</div></div></div>
+
 <script src="/static/v2.js"></script>
 </body></html>
